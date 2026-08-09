@@ -1,0 +1,24 @@
+{
+  "version": "0.1",
+  "name": "fieldproof-default-action-tiers",
+  "description": "Reference policy from the Fieldproof Agentic AI Governance Pack: four action tiers, default-deny, money and deletion gated to humans.",
+  "default": "deny",
+  "tiers": {
+    "0": { "decision": "allow", "label": "read-only" },
+    "1": { "decision": "allow", "label": "reversible write" },
+    "2": { "decision": "require_approval", "label": "hard to reverse — human approval" },
+    "3": { "decision": "deny", "label": "forbidden for agents" }
+  },
+  "rules": [
+    { "id": "read-anything", "match": { "action": "*.read" }, "tier": 0, "rationale": "Reads are tier 0: no side effects." },
+    { "id": "list-search", "match": { "action": "*.list" }, "tier": 0 },
+    { "id": "small-payments-need-approval", "match": { "action": "payments.send", "where": [{ "param": "amount_usd", "lte": 50 }] }, "tier": 2, "rationale": "Any outbound payment is at least tier 2; small ones may be approved quickly." },
+    { "id": "large-payments-forbidden", "match": { "action": "payments.send", "where": [{ "param": "amount_usd", "gt": 50 }] }, "tier": 3, "rationale": "Payments over $50 are outside agent authority entirely." },
+    { "id": "payments-unknown-amount", "match": { "action": "payments.send" }, "tier": 3, "rationale": "Payment with unspecified amount: treat as worst case." },
+    { "id": "no-deletes", "match": { "action": "**.delete" }, "tier": 3, "rationale": "Agents never delete data." },
+    { "id": "no-credentials", "match": { "action": "auth.**" }, "tier": 3, "rationale": "Credential and account operations are human-only." },
+    { "id": "content-updates-ok", "match": { "action": "content.update" }, "tier": 1, "rationale": "Content edits are versioned and reversible." },
+    { "id": "outbound-messages-first-contact", "match": { "action": "messages.send", "where": [{ "param": "prior_contact", "eq": false }] }, "tier": 2, "rationale": "First contact with a new party is new-in-kind: stage for human approval." },
+    { "id": "outbound-messages-known-thread", "match": { "action": "messages.send", "where": [{ "param": "prior_contact", "eq": true }] }, "tier": 1 }
+  ]
+}
