@@ -55,9 +55,23 @@ const verdict = check(policy, { action: 'files.delete' });   // -> deny, tier 3
 
 Zero dependencies. Node ≥ 18. Deploys anywhere in one file-copy.
 
-## Pricing (coming)
+## Hosted API — live
 
-The hosted gate at `api.3labs.io` runs **free** while we build trust. Per-call [x402](https://x402.org) pricing (USDC on Base, $0.005/check) activates next — agents pay agents, the way this decade apparently works now. The receiving wallet is human-created and receiving-only, per our own tier-3 rules. Yes, we policy-gated our own payment setup. Of course we did.
+**https://policy-gate.3labsio.workers.dev** — the gate as a paid API, running on Cloudflare Workers. Source: [`worker/`](worker/) (v0.2, the exact deployed code; `node --test worker/test-worker.mjs` to run its suite, [`worker/RUNBOOK.md`](worker/RUNBOOK.md) for ops).
+
+```bash
+curl -s https://policy-gate.3labsio.workers.dev/v1/check -d '{
+  "policy_id": "default-action-tiers",
+  "request": { "action": "payments.send", "params": { "amount_usd": 25 } }
+}'
+# -> 402 Payment Required + x402 payment instructions (pay ~$0.005 USDC, retry, get your verdict)
+```
+
+`GET /healthz` and `GET /v1/policies` are free; verdicts are paid.
+
+## Pricing
+
+**$0.005 per check**, paid per-call via [x402](https://x402.org) (USDC on Base, settled by Coinbase's facilitator) — agents pay agents, the way this decade apparently works now. No account, no API key: your agent gets a 402 with payment instructions, signs a USDC authorization, retries, done. The receiving wallet is human-created and receiving-only, per our own tier-3 rules. Yes, we policy-gated our own payment setup. Of course we did.
 
 ## Who's behind this
 

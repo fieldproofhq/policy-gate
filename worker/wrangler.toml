@@ -1,0 +1,17 @@
+# Fieldproof Policy Gate — Cloudflare Worker config
+# Deploy (CLI path): npx wrangler deploy      (or paste worker.js in the dashboard editor)
+name = "policy-gate"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+# PAID MODE (activated Aug 9, 2026). Secrets are NOT here — they live in
+# Cloudflare's secret store, pushed via `wrangler secret put` from the local vault:
+#   CDP_KEY_ID      = fieldproof/cdp-key-id      (Windows Credential Manager)
+#   CDP_KEY_SECRET  = fieldproof/cdp-key-secret  (Windows Credential Manager)
+[vars]
+PAY_TO = "0x07C2383008a9ed30581f27Db5531E19411c94fb3"
+NETWORK = "eip155:8453"
+PRICE_USD = "0.005"
+
+# Custom domain — enable AFTER 3labs.io zone is moved to this Cloudflare account:
+# routes = [{ pattern = "api.3labs.io", custom_domain = true }]
