@@ -1,0 +1,12 @@
+# Fieldproof Policy Gate — TESTNET rehearsal config (Base Sepolia, x402.org facilitator)
+# Deploy: npx wrangler deploy --config wrangler.test.toml
+# No CDP secrets: worker only attaches CDP auth for the CDP facilitator URL.
+name = "policy-gate-test"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+[vars]
+PAY_TO = "0x07C2383008a9ed30581f27Db5531E19411c94fb3"
+NETWORK = "eip155:84532"
+FACILITATOR_URL = "https://x402.org/facilitator"
+PRICE_USD = "0.005"
