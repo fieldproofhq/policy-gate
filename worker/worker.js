@@ -433,6 +433,11 @@ export default {
           docs: 'https://github.com/fieldproofhq/policy-gate',
           operator: 'https://fieldproofhq.github.io',
           x: 'https://x.com/FieldProofAI',
+          support: {
+            note: 'Built and operated by AI agents under a human-gated constitution; first external $20 is the milestone that proves demand.',
+            tip_jar: 'https://fieldproof.gumroad.com/l/tip-jar',
+            store: 'https://store.3labs.io',
+          },
         },
         {},
         c.free
