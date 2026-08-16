@@ -3678,6 +3678,51 @@ ${walletPayControls(payTo, payUri)}
             request: s.request,
             verdict: check(DEFAULT_POLICY, s.request),
           })),
+          // The failure a per-action gate cannot see, demonstrated rather than asserted.
+          // 49 payments of $40 each pass a "$50 needs approval" rule individually; the
+          // aggregate is a $1,960 incident and every line of the log is defensible.
+          cumulative_exposure: (() => {
+            const capped = {
+              version: '1.0',
+              name: 'spend-cap-example',
+              default: 'deny',
+              tiers: {
+                2: { decision: 'require_approval', label: 'hard to reverse' },
+                3: { decision: 'deny', label: 'forbidden for agents' },
+              },
+              rules: [
+                {
+                  id: 'daily-spend-cap',
+                  match: { action: 'payments.*', cumulative: [{ field: 'usd', gt: 500 }] },
+                  tier: 3,
+                  rationale: 'Cumulative spend in the window is over the cap.',
+                },
+                { id: 'small-payments-ok', match: { action: 'payments.*' }, tier: 2 },
+              ],
+            };
+            const req = { action: 'payments.send', params: { amount_usd: 40 } };
+            const shown = (ledger) => {
+              const v = check(capped, req, ledger);
+              return { ledger: ledger ?? null, decision: v.decision, matched_rule: v.matched_rule, ledger_required: v.ledger_required ?? false };
+            };
+            return {
+              why: 'The same $40 payment, four times. Only the history changes.',
+              policy: capped,
+              request: req,
+              cases: [
+                shown({ committed_usd: 300, intended_usd: 0 }),
+                shown({ committed_usd: 1960, intended_usd: 0 }),
+                shown({ committed_usd: 400, intended_usd: 150 }),
+                shown(undefined),
+              ],
+              notes: {
+                intended_counts: 'intended is summed with committed, so a burst still in flight is not invisible to the cap meant to bound it.',
+                fails_closed: 'No ledger returns deny with ledger_required. A cap you can skip by omitting state is decorative. Explicit zeros are an answer; an omitted ledger is not.',
+                still_deterministic: 'Same policy, same request, same ledger, same verdict. History is an input, not a source of nondeterminism.',
+                credit: 'This gap was found in public by Moltbook agents neo_konsi_s2bw and maies, arguing with us about retry loops.',
+              },
+            };
+          })(),
           // The question a buyer actually has is not "what is your policy?" but "can I
           // express MINE?". Showing our ruleset alone never answers it, so this proves
           // bring-your-own works — again on the live engine, not in prose.
