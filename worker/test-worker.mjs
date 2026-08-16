@@ -66,6 +66,13 @@ res = await call(freeEnv, 'GET', '/v1/checkouts');
 assert.strictEqual(res.status, 200);
 const listed = await res.json();
 assert.ok(listed.checkouts.some((o) => o.id === 'tip-jar' && o.url.includes('tip-jar')));
+const usdc = listed.checkouts.find((o) => o.id === 'usdc-direct');
+assert.equal(usdc.amount_usd, 42);
+assert.equal(usdc.meets_first_42, true);
+const zelle = listed.checkouts.find((o) => o.id === 'zelle');
+assert.equal(zelle.amount_usd, 42);
+assert.equal(zelle.meets_first_42, true);
+assert.match(zelle.pay_to, /3labsio@gmail.com/);
 
 res = await call(freeEnv, 'GET', '/v1/policies');
 assert.deepStrictEqual((await res.json()).policies, ['default-action-tiers']);
@@ -181,6 +188,51 @@ assert.strictEqual(res.status, 200, 'GET documents the route; health probes read
 const getDocs = await res.json();
 assert.strictEqual(getDocs.method, 'POST', 'docs name the paid method');
 assert.ok(getDocs.accepts?.[0]?.payTo === paidEnv.PAY_TO, 'docs still carry the payment requirements');
+
+/* 4d — MCP (Streamable HTTP). Discovery channel for agents that speak MCP rather than x402.
+   The free tools must be genuinely useful and the paid one must NOT leak a verdict. */
+async function mcp(env, method, params) {
+  const res = await call(env, 'POST', '/mcp', { jsonrpc: '2.0', id: 1, method, params });
+  if (res.status === 202) return { accepted: true };
+  return res.json();
+}
+
+let m = await mcp(paidEnv, 'initialize', { protocolVersion: '2025-06-18' });
+assert.strictEqual(m.result.serverInfo.name, 'fieldproof-policy-gate');
+assert.ok(m.result.capabilities.tools, 'declares tool capability');
+
+m = await mcp(paidEnv, 'tools/list');
+const toolNames = m.result.tools.map((t) => t.name);
+assert.deepStrictEqual(toolNames.sort(), ['policy_check', 'policy_example', 'policy_rules']);
+for (const t of m.result.tools) {
+  assert.ok(t.description?.length > 20 && t.inputSchema, `${t.name} needs a description and schema`);
+}
+
+m = await mcp(paidEnv, 'tools/call', { name: 'policy_example' });
+const mcpEx = JSON.parse(m.result.content[0].text);
+assert.ok(mcpEx.examples.length >= 3, 'free example tool returns worked verdicts');
+for (const e of mcpEx.examples) {
+  assert.strictEqual(e.verdict.decision, check(DEFAULT_POLICY, e.request).decision, 'from the live engine');
+}
+
+/* the paid tool must quote a price, never answer */
+m = await mcp(paidEnv, 'tools/call', {
+  name: 'policy_check',
+  arguments: { request: { action: 'payments.send', params: { amount_usd: 20 } } },
+});
+const quoted = JSON.parse(m.result.content[0].text);
+assert.strictEqual(quoted.payment_required, true, 'paid tool must not answer for free');
+assert.strictEqual(quoted.decision, undefined, 'MCP must not leak the verdict');
+assert.strictEqual(quoted.accepts[0].payTo, paidEnv.PAY_TO, 'quotes the real payee');
+
+/* free mode is the one place it may answer */
+m = await mcp(freeEnv, 'tools/call', { name: 'policy_check', arguments: { request: { action: 'gmail.read' } } });
+assert.strictEqual(JSON.parse(m.result.content[0].text).decision, 'allow', 'free mode answers');
+
+m = await mcp(paidEnv, 'tools/call', { name: 'no_such_tool' });
+assert.strictEqual(m.error.code, -32602, 'unknown tool -> JSON-RPC error, not a crash');
+m = await mcp(paidEnv, 'bogus/method');
+assert.strictEqual(m.error.code, -32601, 'unknown method -> method not found');
 
 /* 5 — CORS preflight */
 res = await worker.fetch(new Request(base + '/v1/check', { method: 'OPTIONS' }), freeEnv);

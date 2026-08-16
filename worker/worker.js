@@ -181,6 +181,45 @@ const DEFAULT_POLICY = {
 
 const BUILTINS = { 'default-action-tiers': DEFAULT_POLICY };
 
+/* --------------------------------- MCP tools ------------------------------- */
+
+const MCP_TOOLS = [
+  {
+    name: 'policy_example',
+    description:
+      'Free. Worked allow/require_approval/deny verdicts from the live policy engine, so you can judge the service before paying for it.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'policy_rules',
+    description:
+      'Free. The full built-in policy: every tier, rule, condition and rationale. Nothing about how a verdict is reached is hidden.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'policy_check',
+    description:
+      'Evaluate a proposed agent action against a policy and return allow / require_approval / deny with the matched rule and rationale. Paid per call via x402 ($0.005 USDC on Base); returns signing instructions when unpaid.',
+    inputSchema: {
+      type: 'object',
+      required: ['request'],
+      properties: {
+        request: {
+          type: 'object',
+          required: ['action'],
+          properties: {
+            action: { type: 'string', description: 'Dotted action id, e.g. payments.send' },
+            actor: { type: 'string' },
+            params: { type: 'object' },
+          },
+        },
+        policy_id: { type: 'string', description: 'Built-in policy id; see policy_rules' },
+        policy: { type: 'object', description: 'Your own policy document, evaluated instead of ours' },
+      },
+    },
+  },
+];
+
 /* ------------------------------ x402 helpers ------------------------------ */
 
 const USDC = {
@@ -283,6 +322,25 @@ function checkouts(c, origin) {
       network: c.network,
       meets_first_42: false,
       note: 'agent x402; unpaid POST quotes the public receive wallet',
+    },
+    {
+      id: 'usdc-direct',
+      url: c.payTo ? `https://basescan.org/address/${c.payTo}` : null,
+      asset: 'USDC',
+      amount_usd: 42,
+      pay_to: c.payTo,
+      network: c.network,
+      meets_first_42: true,
+      note: 'already-approved public receive wallet; one 42 USDC transfer on Base meets the bar',
+    },
+    {
+      id: 'zelle',
+      url: 'https://fieldproofhq.github.io/#support',
+      asset: 'USD',
+      amount_usd: 42,
+      pay_to: '3labsio@gmail.com',
+      meets_first_42: true,
+      note: 'already-approved public Zelle; memo Fieldproof',
     },
   ];
 }
@@ -453,6 +511,72 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
 
     if (request.method === 'GET' && url.pathname === '/healthz') return json(200, { ok: true }, {}, c.free);
+
+    // MCP (Streamable HTTP). x402 directories reach agents that already speak x402; MCP is
+    // how most agents actually acquire tools, and it is a far larger population. The free
+    // surfaces are exposed as real tools so an agent can evaluate the service inside its own
+    // client; the paid verdict returns signing instructions rather than the answer, so this
+    // is a discovery channel and not a giveaway of the product.
+    if (url.pathname === '/mcp') {
+      if (request.method === 'GET') {
+        return json(200, { transport: 'streamable-http', protocol: 'mcp', usage: 'POST JSON-RPC 2.0 here', tools: MCP_TOOLS.map((t) => t.name) }, {}, true);
+      }
+      if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' }, {}, true);
+
+      let rpc;
+      try { rpc = JSON.parse(await request.text()); } catch { return json(200, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }, {}, true); }
+      const reply = (result) => json(200, { jsonrpc: '2.0', id: rpc.id ?? null, result }, {}, true);
+      const fail = (code, message) => json(200, { jsonrpc: '2.0', id: rpc.id ?? null, error: { code, message } }, {}, true);
+
+      switch (rpc.method) {
+        case 'initialize':
+          return reply({
+            protocolVersion: typeof rpc.params?.protocolVersion === 'string' ? rpc.params.protocolVersion : '2025-06-18',
+            capabilities: { tools: {} },
+            serverInfo: { name: 'fieldproof-policy-gate', version: '0.2' },
+            instructions:
+              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check returns x402 payment instructions.',
+          });
+        case 'notifications/initialized':
+          return new Response(null, { status: 202, headers: corsHeaders() });
+        case 'ping':
+          return reply({});
+        case 'tools/list':
+          return reply({ tools: MCP_TOOLS });
+        case 'tools/call': {
+          const name = rpc.params?.name;
+          const args = rpc.params?.arguments || {};
+          const text = (obj) => reply({ content: [{ type: 'text', text: JSON.stringify(obj, null, 2) }] });
+
+          if (name === 'policy_rules') return text({ policies: Object.keys(BUILTINS), definitions: BUILTINS });
+          if (name === 'policy_example') {
+            const samples = [
+              { action: 'docs.read' },
+              { action: 'payments.send', params: { amount_usd: 20 } },
+              { action: 'storage.delete' },
+            ];
+            return text({ examples: samples.map((r) => ({ request: r, verdict: check(DEFAULT_POLICY, r) })) });
+          }
+          if (name === 'policy_check') {
+            const policy = args.policy || BUILTINS[args.policy_id || 'default-action-tiers'];
+            const req = args.request;
+            if (!req?.action) return text({ error: 'request.action is required' });
+            if (c.free) return text(check(policy, req));
+            // Paid: quote the price rather than answer. The verdict itself stays behind x402.
+            return text({
+              payment_required: true,
+              price_usd: c.priceUsd,
+              endpoint: `${url.origin}/v1/check`,
+              accepts: [paymentRequirementsV1(c, `${url.origin}/v1/check`)],
+              how: 'POST the endpoint with an X-PAYMENT header (x402). Free evaluation: policy_example, policy_rules.',
+            });
+          }
+          return fail(-32602, `Unknown tool: ${name}`);
+        }
+        default:
+          return fail(-32601, `Method not found: ${rpc.method}`);
+      }
+    }
 
     if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
       return json(
