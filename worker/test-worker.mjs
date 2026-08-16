@@ -444,7 +444,7 @@ assert.match(cmoPage, /gumroad-button/);
 assert.match(cmoPage, /Pay \$42 with card/);
 assert.match(cmoPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.match(cmoPage, /http-equiv="refresh"/);
-assert.match(cmoPage, /location\.replace/);
+assert.match(cmoPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 assert.doesNotMatch(cmoPage, /Self-buys do not count/i);
 res = await call(freeEnv, 'GET', '/v1/pay');
