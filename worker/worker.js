@@ -248,7 +248,38 @@ const DEFAULT_POLICY = {
   ],
 };
 
-const BUILTINS = { 'default-action-tiers': DEFAULT_POLICY };
+/** The default policy bounds each payment and says nothing about the fiftieth.
+ *
+ *  Forty-nine payments of $40 each pass `small-payments-need-approval` individually, and every
+ *  verdict is defensible — which is exactly what makes the log useless afterwards. This variant
+ *  adds the cumulative bound, first in the list so it is reached before the per-action rule.
+ *
+ *  It is shipped as a SEPARATE built-in rather than folded into the default on purpose: it
+ *  requires the caller to supply a ledger and denies when they do not, so adopting it is a
+ *  decision to actually maintain that state. A cap nobody feeds is worse than no cap, because
+ *  it looks like one in an audit.
+ */
+const CAPPED_POLICY = {
+  ...DEFAULT_POLICY,
+  version: DEFAULT_POLICY.version,
+  name: 'default-action-tiers-capped',
+  rules: [
+    {
+      id: 'cumulative-spend-cap',
+      match: { action: 'payments.*', cumulative: [{ field: 'usd', gt: 50 }] },
+      tier: 3,
+      rationale:
+        'Committed plus intended spend in the window is over $50. Individually-approved payments still aggregate, ' +
+        'and the per-action rules below cannot see that.',
+    },
+    ...DEFAULT_POLICY.rules,
+  ],
+};
+
+const BUILTINS = {
+  'default-action-tiers': DEFAULT_POLICY,
+  'default-action-tiers-capped': CAPPED_POLICY,
+};
 
 /** Ethics Check is priced above the policy verdict: it is the judgement call, not the lookup. */
 const ETHICS_PRICE_USD = '0.01';
