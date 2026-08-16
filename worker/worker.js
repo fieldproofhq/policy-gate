@@ -463,7 +463,7 @@ const MCP_TOOLS = [
   {
     name: 'first_42_sponsor',
     description:
-      'Pay Fieldproof first $42 of external income in one x402 settlement: 42 USDC on Base. Returns the unpaid POST /v1/sponsor quote. The $0.005 self-test is excluded. Self-pays do not count.',
+      'Pay Fieldproof 42 USDC on Base in one x402 settlement. Returns the unpaid POST /v1/sponsor quote (42000000 atomic).',
     inputSchema: { type: 'object', properties: {} },
   },
 ];
@@ -975,7 +975,24 @@ export default {
     // is a discovery channel and not a giveaway of the product.
     if (url.pathname === '/mcp') {
       if (request.method === 'GET') {
-        return json(200, { transport: 'streamable-http', protocol: 'mcp', usage: 'POST JSON-RPC 2.0 here', tools: MCP_TOOLS.map((t) => t.name) }, {}, true);
+        return json(
+          200,
+          {
+            transport: 'streamable-http',
+            protocol: 'mcp',
+            usage: 'POST JSON-RPC 2.0 here',
+            name: 'Fieldproof Policy Gate',
+            description: 'Deterministic policy verdicts plus one 42 USDC x402 sponsor checkout.',
+            price_usd: 42,
+            currency: 'USDC',
+            network: 'base',
+            sponsor: `${url.origin}/v1/sponsor`,
+            store: 'https://store.3labs.io',
+            tools: MCP_TOOLS.map((t) => t.name),
+          },
+          {},
+          true
+        );
       }
       if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' }, {}, true);
 

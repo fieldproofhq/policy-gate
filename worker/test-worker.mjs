@@ -407,6 +407,13 @@ assert.ok(getDocs.accepts?.[0]?.payTo === paidEnv.PAY_TO, 'docs still carry the 
 
 /* 4d — MCP (Streamable HTTP). Discovery channel for agents that speak MCP rather than x402.
    The free tools must be genuinely useful and the paid one must NOT leak a verdict. */
+res = await call(paidEnv, 'GET', '/mcp');
+assert.strictEqual(res.status, 200);
+const mcpDiscover = await res.json();
+assert.equal(mcpDiscover.price_usd, 42);
+assert.equal(mcpDiscover.currency, 'USDC');
+assert.match(mcpDiscover.sponsor, /\/v1\/sponsor$/);
+assert.ok(mcpDiscover.tools.includes('first_42_sponsor'));
 async function mcp(env, method, params) {
   const res = await call(env, 'POST', '/mcp', { jsonrpc: '2.0', id: 1, method, params });
   if (res.status === 202) return { accepted: true };
