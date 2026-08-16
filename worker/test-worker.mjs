@@ -178,6 +178,9 @@ assert.match(sponsorPage, /42 USDC/);
 assert.match(sponsorPage, /uint256=42000000/);
 assert.match(sponsorPage, /POST \/v1\/sponsor/);
 assert.match(sponsorPage, /0x07C2383008a9ed30581f27Db5531E19411c94fb3/);
+assert.match(sponsorPage, /Copy address/);
+assert.match(sponsorPage, /Copy invoice/);
+assert.match(sponsorPage, /navigator\.clipboard/);
 res = await call(sponsorEnv, 'POST', '/v1/sponsor');
 assert.strictEqual(res.status, 402);
 const sponsor402 = await res.json();
@@ -202,6 +205,9 @@ assert.match(payPage, /0x07C2383008a9ed30581f27Db5531E19411c94fb3/);
 assert.match(payPage, /ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453\/transfer/);
 assert.match(payPage, /create-qr-code/);
 assert.match(payPage, /uint256%3D42000000/);
+assert.match(payPage, /Copy address/);
+assert.match(payPage, /Copy invoice/);
+assert.match(payPage, /navigator\.clipboard/);
 const zelle = listed.checkouts.find((o) => o.id === 'zelle');
 assert.equal(zelle.amount_usd, 42);
 assert.equal(zelle.meets_first_42, true);
@@ -396,13 +402,6 @@ async function mcp(env, method, params) {
   if (res.status === 202) return { accepted: true };
   return res.json();
 }
-
-res = await call(paidEnv, 'GET', '/.well-known/mcp.json');
-assert.strictEqual(res.status, 200, 'MCP discovery document is public');
-const mcpDiscovery = await res.json();
-assert.strictEqual(mcpDiscovery.server_url, `${base}/mcp`);
-assert.strictEqual(mcpDiscovery.x402, `${base}/.well-known/x402`);
-assert.ok(mcpDiscovery.tools.some((t) => t.name === 'policy_check'));
 
 let m = await mcp(paidEnv, 'initialize', { protocolVersion: '2025-06-18' });
 assert.strictEqual(m.result.serverInfo.name, 'fieldproof-policy-gate');

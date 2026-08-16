@@ -524,19 +524,37 @@ function wantsHtml(request) {
   return /text\/html/i.test(accept);
 }
 
+function copyPayControls(address, payUri) {
+  const esc = (value) => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<p>
+<button type="button" data-copy="${esc(address)}">Copy address</button>
+<button type="button" data-copy="${esc(payUri)}">Copy invoice</button>
+</p>
+<script>
+document.querySelectorAll("[data-copy]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var text = btn.getAttribute("data-copy") || "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ btn.textContent = "Copied"; }).catch(function(){});
+    }
+  });
+});
+</script>`;
+}
+
 function sponsorHtml(origin, payTo) {
   const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
 <p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>.</p>
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
 <pre style="white-space:pre-wrap;word-break:break-all">${payTo}</pre>
+${copyPayControls(payTo, payUri)}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
 <pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${origin}/v1/sponsor</pre>
-<p>An unpaid POST (or GET without <code>Accept: text/html</code>) returns <strong>HTTP 402</strong> with the x402 quote. After sending, check <a href="/v1/received">GET /v1/received</a>.</p>
 </body></html>`;
 }
 
@@ -1037,21 +1055,6 @@ export default {
       }
     }
 
-    // Standard MCP discovery document. Some directories link this path from an
-    // MCP listing and use it as the machine-readable source of the server URL.
-    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
-      return json(200, {
-        name: 'fieldproof-policy-gate',
-        title: 'Fieldproof Policy Gate',
-        description: 'Deterministic allow / require_approval / deny verdicts for proposed agent actions.',
-        server_url: `${url.origin}/mcp`,
-        transport: 'streamable-http',
-        protocol: 'mcp',
-        tools: MCP_TOOLS.map((t) => ({ name: t.name, description: t.description })),
-        x402: `${url.origin}/.well-known/x402`,
-      }, {}, true);
-    }
-
     if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
       if (wantsHtml(request)) {
         let btc = null;
@@ -1218,15 +1221,15 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
       const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
       const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
 <p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds.</p>
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
 <pre style="white-space:pre-wrap;word-break:break-all">${payTo}</pre>
+${copyPayControls(payTo, payUri)}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
-<p>After sending, check <a href="/v1/received">GET /v1/received</a>. The $0.005 self-test is excluded.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
