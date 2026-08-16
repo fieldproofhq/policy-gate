@@ -678,6 +678,7 @@ const GOAL_USD = 42;
 const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPCS = ['https://mainnet.base.org', 'https://base.publicnode.com', 'https://1rpc.io/base'];
 const BTC_ADDRESS = 'bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t';
+const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00';
 
 function satsForGoal(priceUsd, goalUsd = GOAL_USD) {
   const price = Number(priceUsd);
@@ -752,8 +753,10 @@ function payIndexHtml(origin, btc = null) {
 <p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
 <p>Card first:</p>
 <ul>
+<li><a href="${STRIPE_PAYMENT_LINK}">$42 with card</a> — live Stripe Payment Link</li>
+<li><a href="${origin}/v1/pay/card">Card checkout page</a> — same $42 Stripe link with copy</li>
 <li><a href="https://store.3labs.io">Browse the store</a> — Governance Pack, CMO kit, tip jar</li>
-<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, card checkout</li>
+<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, Gumroad card</li>
 <li><a href="${origin}/v1/pay/cmo">$39 Fractional CMO kit</a> — humans and agents</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
 <li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO live; CFO, COO, CTO, CISO operating contracts</li>
@@ -780,6 +783,14 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 42,
       meets_first_42: false,
       note: 'one page listing every live rail; pick the $42 path that matches the payer',
+    },
+    {
+      id: 'stripe-payment-link',
+      url: STRIPE_PAYMENT_LINK,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'live Stripe Payment Link; one $42 card payment meets the bar',
     },
     {
       id: 'governance-pack',
@@ -1043,6 +1054,18 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/healthz') return json(200, { ok: true }, {}, c.free);
 
+    // Conventional discovery alias used by MCP directories and clients.
+    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
+      return json(200, {
+        name: 'Fieldproof Policy Gate',
+        title: 'Fieldproof Policy Gate',
+        description: 'Deterministic policy verdicts plus one 42 USDC x402 sponsor checkout.',
+        server_url: `${url.origin}/mcp`,
+        x402: `${url.origin}/.well-known/x402`,
+        tools: `${url.origin}/mcp`,
+      }, {}, true);
+    }
+
     // MCP (Streamable HTTP). x402 directories reach agents that already speak x402; MCP is
     // how most agents actually acquire tools, and it is a far larger population. The free
     // surfaces are exposed as real tools so an agent can evaluate the service inside its own
@@ -1161,6 +1184,7 @@ export default {
             example: 'GET /v1/example  (free — worked verdicts from the live engine)',
             received: 'GET /v1/received  (free — public USDC+BTC observation; self-test excluded)',
             pay: 'GET /v1/pay  (free — HTML index of every live $42 rail)',
+            pay_card: 'GET /v1/pay/card  (free — $42 Stripe Payment Link)',
             pay_usdc: 'GET /v1/pay/usdc  (free — one-tap 42 USDC on Base)',
             pay_zelle: 'GET /v1/pay/zelle  (free — $42 Zelle instructions)',
             pay_btc: 'GET /v1/pay/btc  (free — BIP21 BTC invoice for ~$42)',
@@ -1208,6 +1232,17 @@ export default {
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
+    if (request.method === 'GET' && url.pathname === '/v1/pay/card') {
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Pay $42 with card</h1>
+<p>One <strong>$42</strong> card payment on Stripe. Hosted checkout — no Fieldproof account required.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>Direct link: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
+<p>Also: <a href="https://store.3labs.io">store.3labs.io</a> (Gumroad card) · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
       const overlay = 'https://fieldproof.gumroad.com/l/agentic-ai-governance-pack';
@@ -1219,6 +1254,7 @@ export default {
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $42 pack</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
+<p>Prefer a real workflow? <a href="mailto:3labsio@gmail.com?subject=Fieldproof%20one-flow%20pilot">Request a one-flow pilot</a> with proposal, authority, outcome, refusal, and replay evidence.</p>
 <p>Store catalog: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
