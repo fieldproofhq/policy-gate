@@ -1452,7 +1452,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/cto">$42 Fractional CTO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/ciso">$42 Fractional CISO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
-<li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO, CFO, COO, CTO, CISO Word kits live</li>
+<li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — C-suite Word kits live (CMO, CFO, COO, CTO, CISO)</li>
 </ul>
 <p>Or pay another way:</p>
 <ul>
