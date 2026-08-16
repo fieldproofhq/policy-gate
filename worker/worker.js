@@ -228,7 +228,12 @@ function paymentRequirementsV1(c, url) {
     network: V1_NETWORK[c.network] || 'base',
     maxAmountRequired: c.amount,
     resource: url,
-    description: 'Deterministic policy verdict for a proposed agent action',
+    // The 402 is the only thing most callers will ever read. It should answer "why would
+    // I pay this?" without a second request.
+    description:
+      'Deterministic allow / require_approval / deny verdict for a proposed agent action. ' +
+      'Same input always yields the same verdict, with the matched rule and rationale returned so it is auditable. ' +
+      'Evaluate before paying — GET /v1/example and GET /v1/policies are free and hide nothing.',
     mimeType: 'application/json',
     payTo: c.payTo,
     maxTimeoutSeconds: 60,
@@ -426,18 +431,19 @@ export default {
           version: '0.2',
           description:
             'Deterministic policy verdicts for autonomous agents: allow | require_approval | deny. The policy this AI-run business operates under, as an API.',
-          endpoints: { check: 'POST /v1/check', policies: 'GET /v1/policies', health: 'GET /healthz' },
+          endpoints: {
+            check: 'POST /v1/check',
+            policies: 'GET /v1/policies',
+            example: 'GET /v1/example  (free — worked verdicts from the live engine)',
+            health: 'GET /healthz',
+          },
+          evaluate_before_paying: 'GET /v1/example and GET /v1/policies are free and complete. Nothing about the verdict logic is hidden behind the paywall.',
           pricing: c.free
             ? { mode: 'free', note: 'x402 pricing ($0.005/check, USDC on Base) coming soon' }
             : { mode: 'x402', price_usd: c.priceUsd, network: c.network, protocol: 'x402 v2 (v1 compatible)' },
           docs: 'https://github.com/fieldproofhq/policy-gate',
           operator: 'https://fieldproofhq.github.io',
           x: 'https://x.com/FieldProofAI',
-          support: {
-            note: 'Built and operated by AI agents under a human-gated constitution; first external $20 is the milestone that proves demand.',
-            tip_jar: 'https://fieldproof.gumroad.com/l/tip-jar',
-            store: 'https://store.3labs.io',
-          },
         },
         {},
         c.free
@@ -445,7 +451,53 @@ export default {
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/policies') {
-      return json(200, { policies: Object.keys(BUILTINS) }, {}, c.free);
+      // The ruleset is documentation, not the product. What is sold is the evaluation —
+      // deterministic, versioned, and auditable. Returning only opaque ids meant nobody
+      // deciding whether to pay could see what a verdict is grounded in.
+      return json(
+        200,
+        {
+          policies: Object.keys(BUILTINS),
+          definitions: BUILTINS,
+          note: 'Policies are public on purpose: you are paying for the verdict, not the rules. GET /v1/example for worked verdicts.',
+        },
+        {},
+        c.free
+      );
+    }
+
+    // Free worked examples, computed by the same evaluator that serves paid traffic.
+    // Nothing here is canned: if the engine changes, these change with it, which is the
+    // only version of this endpoint worth trusting.
+    if (request.method === 'GET' && url.pathname === '/v1/example') {
+      const samples = [
+        { label: 'read-only action', request: { action: 'docs.read', params: { path: '/README' } } },
+        { label: 'small payment', request: { action: 'payments.send', params: { amount_usd: 20 } } },
+        { label: 'large payment', request: { action: 'payments.send', params: { amount_usd: 500 } } },
+        { label: 'deletion', request: { action: 'storage.delete', params: { key: 'prod/db' } } },
+        { label: 'first contact message', request: { action: 'messages.send', params: { prior_contact: false } } },
+        { label: 'unmatched action (default applies)', request: { action: 'something.novel' } },
+      ];
+      return json(
+        200,
+        {
+          policy_id: 'default-action-tiers',
+          note: 'These verdicts are produced live by the same function that answers POST /v1/check. Paying buys the same evaluation over YOUR policy and YOUR action.',
+          examples: samples.map((s) => ({
+            label: s.label,
+            request: s.request,
+            verdict: check(DEFAULT_POLICY, s.request),
+          })),
+          try_it: {
+            endpoint: 'POST /v1/check',
+            body: { policy_id: 'default-action-tiers', request: { action: 'payments.send', params: { amount_usd: 20 } } },
+            price_usd: c.priceUsd,
+            protocol: c.free ? 'free mode' : 'x402 (USDC on Base)',
+          },
+        },
+        {},
+        c.free
+      );
     }
 
     if (request.method === 'POST' && url.pathname === '/v1/check') {

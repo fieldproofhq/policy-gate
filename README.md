@@ -49,25 +49,45 @@ const verdict = check(policy, { action: 'files.delete' });   // -> deny, tier 3
 
 ## API
 
-- `POST /v1/check` — body `{ request: {action, actor?, params?}, policy | policy_id }` → verdict
-- `GET /v1/policies` — list built-in policies
-- `GET /healthz` — liveness
+- `POST /v1/check` — body `{ request: {action, actor?, params?}, policy | policy_id }` → verdict **(paid on the hosted API)**
+- `GET /v1/example` — worked verdicts from the live engine *(free)*
+- `GET /v1/policies` — built-in policies, with every rule and rationale *(free)*
+- `GET /healthz` — liveness *(free)*
 
 Zero dependencies. Node ≥ 18. Deploys anywhere in one file-copy.
 
 ## Hosted API — live
 
-**https://policy-gate.3labsio.workers.dev** — the gate as a paid API, running on Cloudflare Workers. Source: [`worker/`](worker/) (v0.2, the exact deployed code; `node --test worker/test-worker.mjs` to run its suite, [`worker/RUNBOOK.md`](worker/RUNBOOK.md) for ops).
+**https://policy-gate.3labsio.workers.dev** — the gate as a paid API on Cloudflare Workers. Source: [`worker/`](worker/) (v0.2, the exact deployed code; `node --test worker/test-worker.mjs` to run its suite, [`worker/RUNBOOK.md`](worker/RUNBOOK.md) for ops).
+
+**See it work first — no wallet, no key, no signup:**
+
+```bash
+curl -s https://policy-gate.3labsio.workers.dev/v1/example
+```
+
+Six worked verdicts, computed live by the same function that answers paid traffic — including the denials. A test in the suite fails if these examples ever drift from the engine, so what you evaluate is what you buy:
+
+```
+docs.read                        => allow             (tier 0)
+payments.send  amount_usd: 20    => require_approval  (tier 2)
+payments.send  amount_usd: 500   => deny              (tier 3)
+storage.delete                   => deny              (tier 3)
+messages.send  prior_contact:no  => require_approval  (tier 2)
+something.novel                  => deny              (default)
+```
+
+The full ruleset is free too — `GET /v1/policies` returns every rule, condition and rationale. **Nothing about how a verdict is reached sits behind the paywall.** You are paying for the evaluation of *your* policy against *your* action, not for access to ours.
+
+**Then pay only when you want a verdict of your own:**
 
 ```bash
 curl -s https://policy-gate.3labsio.workers.dev/v1/check -d '{
   "policy_id": "default-action-tiers",
   "request": { "action": "payments.send", "params": { "amount_usd": 25 } }
 }'
-# -> 402 Payment Required + x402 payment instructions (pay ~$0.005 USDC, retry, get your verdict)
+# -> 402 Payment Required + x402 instructions (sign ~$0.005 USDC, retry, get your verdict)
 ```
-
-`GET /healthz` and `GET /v1/policies` are free; verdicts are paid.
 
 ## Pricing
 

@@ -112,6 +112,36 @@ assert.strictEqual(res.status, 200, 'policies list never paywalled');
 res = await call(paidEnv, 'POST', '/v1/check', { request: { action: 'x.read' } }, { 'x-payment': '!!!notbase64!!!' });
 assert.strictEqual(res.status, 402, 'malformed payment -> 402');
 
+/* 4b — the free evaluation surface. A buyer must be able to see what a verdict is and
+   what it is grounded in BEFORE paying, or there is nothing to decide on. */
+res = await call(paidEnv, 'GET', '/v1/example');
+assert.strictEqual(res.status, 200, 'worked examples never paywalled');
+const ex = await res.json();
+assert.ok(Array.isArray(ex.examples) && ex.examples.length >= 5, 'several worked examples');
+for (const e of ex.examples) {
+  assert.ok(e.request && e.verdict, 'each example shows input and verdict');
+  assert.ok(['allow', 'require_approval', 'deny'].includes(e.verdict.decision), 'real decision');
+}
+/* the examples must come from the live engine, not a hand-written copy that can drift */
+for (const e of ex.examples) {
+  const live = check(DEFAULT_POLICY, e.request);
+  assert.strictEqual(e.verdict.decision, live.decision, `${e.label}: example drifted from the engine`);
+  assert.strictEqual(e.verdict.matched_rule, live.matched_rule, `${e.label}: rule drifted from the engine`);
+}
+/* and they must cover the full decision range, or they are advertising rather than showing */
+const decisions = new Set(ex.examples.map((e) => e.verdict.decision));
+assert.ok(decisions.has('allow') && decisions.has('require_approval') && decisions.has('deny'),
+  'examples must include a denial, not only happy paths');
+
+res = await call(paidEnv, 'GET', '/v1/policies');
+const pol = await res.json();
+assert.ok(pol.definitions, 'policy definitions are public, not just ids');
+assert.ok(pol.definitions['default-action-tiers'].rules.length >= 10, 'full ruleset exposed');
+
+/* the paywall itself must not have moved */
+res = await call(paidEnv, 'POST', '/v1/check', { policy_id: 'default-action-tiers', request: { action: 'x.read' } });
+assert.strictEqual(res.status, 402, 'the product itself is still paid');
+
 /* 5 — CORS preflight */
 res = await worker.fetch(new Request(base + '/v1/check', { method: 'OPTIONS' }), freeEnv);
 assert.strictEqual(res.status, 204);
