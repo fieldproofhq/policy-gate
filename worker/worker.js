@@ -1604,18 +1604,18 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/pack`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: GUMROAD_PACK,
+      pay_uri: STRIPE_PAYMENT_LINK,
       meets_first_42: true,
-      note: 'HTML pay landing then live Gumroad $42 pack overlay; one sale meets the $42 bar',
+      note: 'HTML pay landing auto-opens the live $42 Stripe checkout; Gumroad overlay stays secondary',
     },
     {
       id: 'pack-uri',
       url: `${origin}/v1/pay/pack.uri`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: GUMROAD_PACK,
+      pay_uri: STRIPE_PAYMENT_LINK,
       meets_first_42: true,
-      note: 'text/uri-list of the live $42 Gumroad pack checkout; agents open the first URI',
+      note: 'text/uri-list of the live $42 Stripe Payment Link; agents open the first URI',
     },
     {
       id: 'cmo-kit',
@@ -2474,23 +2474,24 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/pack.uri' || url.pathname === '/v1/pay/pack.txt')) {
-      return uriListResponse(GUMROAD_PACK);
+      return uriListResponse(STRIPE_PAYMENT_LINK);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = GUMROAD_PACK;
-      if (wantsUriList(request)) return uriListResponse(checkout);
+      if (wantsUriList(request)) return uriListResponse(STRIPE_PAYMENT_LINK);
       if (wantsJson(request)) {
         return json(
           200,
           {
-            scheme: 'gumroad',
+            scheme: 'stripe',
             asset: 'USD',
             amountUsd: GOAL_USD,
-            uri: checkout,
-            url: checkout,
+            uri: STRIPE_PAYMENT_LINK,
+            url: STRIPE_PAYMENT_LINK,
             product: 'agentic-ai-governance-pack',
             card: STRIPE_PAYMENT_LINK,
+            gumroad: checkout,
           },
           { Link: paymentLinkHeader() },
           true
