@@ -741,9 +741,13 @@ function cardFallbackHtml() {
 function sponsorHtml(origin, payTo) {
   const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay 42 USDC on Base</h1>
-<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>.</p>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Pay $42 — card or 42 USDC</h1>
+<p>Opening card checkout. One transfer of <strong>42 USDC</strong> on <strong>Base</strong> also meets the bar. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 ${walletPayControls(payTo, payUri)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
@@ -753,6 +757,7 @@ ${copyPayControls(payTo, payUri)}
 ${cardFallbackHtml()}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
 <pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${origin}/v1/sponsor</pre>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
 }
 

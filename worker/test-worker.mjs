@@ -639,6 +639,7 @@ assert.match(sponsorPage, /0xa9059cbb/);
 assert.match(sponsorPage, /wallet_switchEthereumChain/);
 assert.match(sponsorPage, /42000000/);
 assert.match(sponsorPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
+assert.match(sponsorPage, /http-equiv="refresh"/);
 assert.doesNotMatch(sponsorPage, /private[_ ]?key/i);
 res = await call(sponsorEnv, 'POST', '/v1/sponsor');
 assert.strictEqual(res.status, 402);
