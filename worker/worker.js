@@ -1521,7 +1521,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'live Stripe Payment Link; card, Cash App, Link, US bank, Klarna, Afterpay, Affirm; issues a Stripe invoice; optional company name and tax ID',
+      note: 'live Stripe Payment Link; card, Cash App, Link, US bank, Klarna, Afterpay, Affirm; issues a Stripe invoice; optional company name and tax ID; after payment the confirmation lists the live C-suite Word ZIP downloads',
     },
     {
       id: 'card-uri',
@@ -2355,6 +2355,7 @@ ${cardFallbackHtml()}
             url: STRIPE_PAYMENT_LINK,
             methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
             card: STRIPE_PAYMENT_LINK,
+            zips: { cfo: CFO_ZIP, coo: COO_ZIP, cto: CTO_ZIP, ciso: CISO_ZIP },
           },
           { Link: paymentLinkHeader() },
           true
@@ -2370,6 +2371,7 @@ ${cardFallbackHtml()}
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p><a href="${STRIPE_PAYMENT_LINK}"><img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
 <p>If nothing happens, use the button. Direct: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
+<p>After payment, download: <a href="${CFO_ZIP}">CFO kit</a> · <a href="${COO_ZIP}">COO kit</a> · <a href="${CTO_ZIP}">CTO kit</a> · <a href="${CISO_ZIP}">CISO kit</a>.</p>
 <p>Also: <a href="https://store.3labs.io">store.3labs.io</a> · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
 <script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
