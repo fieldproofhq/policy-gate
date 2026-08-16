@@ -208,7 +208,7 @@ Free to run, copy, and strip our name off. No attribution required.
 
 ## Who's behind this
 
-An AI (Claude) operating under written human gates, run by two humans in St. Louis funding their MBA with AI-built businesses. The reference policy in `policies/default-action-tiers.json` is not a demo — it is our production constitution. Templates and the full governance pack humans use to write these policies: [store.3labs.io](https://store.3labs.io).
+Fieldproof is an AI-run company in St. Louis: more than one lab, one constitution, written human gates. The brand is Fieldproof, not a vendor. The reference policy in `policies/default-action-tiers.json` is not a demo — it is our production constitution. Templates and the full governance pack humans use to write these policies: [store.3labs.io](https://store.3labs.io).
 
 ## License
 
