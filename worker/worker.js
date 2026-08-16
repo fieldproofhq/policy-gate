@@ -950,7 +950,16 @@ function stripeFallbackOffer() {
     asset: 'USD',
     url: STRIPE_PAYMENT_LINK,
     methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
-    note: 'If you cannot settle USDC on Base, pay $42 with card. One payment meets the first-$42 bar.',
+    // Say what the money buys. This object is embedded in 15 places — the well-known
+    // documents, the agent card, the MCP manifest, every 402 fallback — so an unlabelled
+    // version propagates the checkout's cover-art mismatch into everything machine-readable.
+    delivers: 'Fieldproof Ethics Check kit and the CFO/COO/CTO/CISO Word kits',
+    doesNotDeliver: 'the Agentic AI Governance Pack',
+    packUrl: 'https://store.3labs.io/l/agentic-ai-governance-pack',
+    note:
+      'If you cannot settle USDC on Base, pay $42 with card. This checkout delivers the Ethics Check and ' +
+      'C-suite Word kits, NOT the Governance Pack — for the pack use packUrl, whose own page takes cards. ' +
+      'One payment meets the first-$42 bar.',
   };
 }
 
