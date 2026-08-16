@@ -487,6 +487,17 @@ export default {
       return json(200, { checkouts: checkouts(c, url.origin) }, {}, c.free);
     }
 
+    // Domain-ownership proof for the 402index.io directory. This is the SHA-256 hash of a
+    // verification token, not the token itself — the hash is designed to be public and the
+    // token never touches a file in this repo. Serving it proves we control the origin and
+    // upgrades our listing from "pending review" to approved.
+    if (request.method === 'GET' && url.pathname === '/.well-known/402index-verify.txt') {
+      return new Response('725eddf8d73ca58a9890434155f994b9a43ecef4016ea6cdb9a4f3b8c1ee8d58', {
+        status: 200,
+        headers: { 'content-type': 'text/plain; charset=utf-8', ...corsHeaders() },
+      });
+    }
+
     // Discovery manifest. Crawlers and directories look here first; without it a service
     // is invisible to anything that does not already know the exact POST route. Rejected
     // by agent-tools.cloud on 2026-08-16 for precisely this: "no /.well-known/x402 and no
@@ -519,13 +530,30 @@ export default {
       );
     }
 
-    // A GET on the paid route advertises the price rather than 404ing. Probers, directories
-    // and curious humans all arrive this way, and a 404 tells them the service does not exist.
+    // A GET on the paid route documents it; it does not 404 and it does not 402.
+    //
+    // GET is not the paid operation — POST is — and directory health probes read a non-2xx
+    // GET as a dead service. Ours was marked `health: down` for exactly that, while every
+    // healthy listing answered 200. This returns docs-only JSON carrying the full `accepts`
+    // block, which is the pattern those directories document ("if the probe returned
+    // docs-only JSON, follow its request schema"), so machines still learn the price here.
     if (request.method === 'GET' && url.pathname === '/v1/check') {
-      if (c.free) {
-        return json(200, { free: true, usage: 'POST this endpoint with { policy_id | policy, request }' }, {}, true);
-      }
-      return paymentRequired402(c, url.href, url.origin);
+      return json(
+        200,
+        {
+          endpoint: `${url.origin}/v1/check`,
+          method: 'POST',
+          paid: !c.free,
+          usage: 'POST { "policy_id": "default-action-tiers" | "policy": {...}, "request": { "action": "...", "params": {...} } }',
+          accepts: c.free ? [] : [paymentRequirementsV1(c, url.href)],
+          price_usd: c.free ? 0 : c.priceUsd,
+          protocol: c.free ? 'free mode' : 'x402 — POST without payment returns 402 with signing instructions',
+          evaluate_before_paying: [`${url.origin}/v1/example`, `${url.origin}/v1/policies`],
+          discovery: `${url.origin}/.well-known/x402`,
+        },
+        {},
+        true
+      );
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/policies') {

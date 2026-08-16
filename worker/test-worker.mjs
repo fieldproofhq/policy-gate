@@ -177,7 +177,10 @@ assert.ok(wk.resources[0].url.endsWith('/v1/check'), 'manifest points at the pai
 assert.strictEqual(wk.resources[0].accepts[0].payTo, paidEnv.PAY_TO, 'manifest quotes the real payee');
 
 res = await call(paidEnv, 'GET', '/v1/check');
-assert.strictEqual(res.status, 402, 'GET on the paid route advertises price, never 404');
+assert.strictEqual(res.status, 200, 'GET documents the route; health probes read non-2xx as a dead service');
+const getDocs = await res.json();
+assert.strictEqual(getDocs.method, 'POST', 'docs name the paid method');
+assert.ok(getDocs.accepts?.[0]?.payTo === paidEnv.PAY_TO, 'docs still carry the payment requirements');
 
 /* 5 — CORS preflight */
 res = await worker.fetch(new Request(base + '/v1/check', { method: 'OPTIONS' }), freeEnv);
