@@ -1128,8 +1128,8 @@ function openApiSpec(origin) {
       '/skills/pay/SKILL.md': {
         get: {
           operationId: 'paySkill',
-          summary: 'Agent skill: how to pay Fieldproof $42 on every live rail',
-          responses: { 200: { description: 'text/markdown skill with live checkout URLs' } },
+          summary: 'Agent skill: how to pay Fieldproof $42 on every live rail. Browsers get a live checkout; agents get markdown.',
+          responses: { 200: { description: 'HTML checkout when Accept includes text/html; otherwise text/markdown skill with live checkout URLs.' } },
         },
       },
       '/v1/pay/card.png': {
@@ -2718,6 +2718,14 @@ ${cardFallbackHtml()}
         url.pathname === '/skills/pay/' ||
         url.pathname === '/.well-known/skills/pay/SKILL.md')
     ) {
+      if (url.pathname !== '/.well-known/skills/pay/SKILL.md' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return new Response(skillPayMd(url.origin), {
         status: 200,
         headers: {
