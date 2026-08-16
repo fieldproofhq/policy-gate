@@ -848,6 +848,10 @@ function btcQrUrl(sats = null) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(btcBip21(sats))}`;
 }
 
+function zelleQrUrl() {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(zelleMailto())}`;
+}
+
 function npmFunding() {
   return [
     { type: 'individual', url: 'https://fieldproofhq.github.io/offer/' },
@@ -1201,6 +1205,13 @@ function openApiSpec(origin) {
           operationId: 'payZelleUri',
           summary: 'text/uri-list mailto invoice for $42 via Zelle to 3labsio@gmail.com',
           responses: { 200: { description: 'text/uri-list; one mailto: URI' } },
+        },
+      },
+      '/v1/pay/zelle.png': {
+        get: {
+          operationId: 'payZelleQr',
+          summary: '302 to a scannable QR of the $42 Zelle mailto invoice',
+          responses: { 302: { description: 'Redirect to QR image of the Zelle mailto' } },
         },
       },
       '/v1/pay/btc.uri': {
@@ -1797,6 +1808,17 @@ function checkouts(c, origin, btc = null) {
       note: 'text/uri-list mailto invoice for $42 Zelle; agents open the first URI',
     },
     {
+      id: 'zelle-qr',
+      url: `${origin}/v1/pay/zelle.png`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_to: ZELLE_EMAIL,
+      pay_uri: zelleMailto(),
+      qr_url: zelleQrUrl(),
+      meets_first_42: true,
+      note: '302 to a scannable QR of the $42 Zelle mailto invoice; one stranger Zelle meets the bar',
+    },
+    {
       id: 'bitcoin',
       url: `${origin}/v1/pay/btc`,
       asset: 'BTC',
@@ -2294,6 +2316,7 @@ export default {
         `${url.origin}/v1/pay/btc.uri`,
         `${url.origin}/v1/pay/btc.png`,
         `${url.origin}/v1/pay/zelle.uri`,
+        `${url.origin}/v1/pay/zelle.png`,
         `${url.origin}/v1/pay/pack.uri`,
         `${url.origin}/v1/pay/tip-jar.uri`,
         `${url.origin}/mcp`,
@@ -2408,6 +2431,7 @@ export default {
         `- Bitcoin QR (scannable): ${url.origin}/v1/pay/btc.png`,
         `- Zelle $42 to 3labsio@gmail.com: ${url.origin}/v1/pay/zelle`,
         `- Zelle mailto (text/uri-list): ${url.origin}/v1/pay/zelle.uri`,
+        `- Zelle QR (scannable): ${url.origin}/v1/pay/zelle.png`,
         '',
         'Observer: GET /v1/received. A 402 or HTTP 200 is not income.',
         '',
@@ -2773,6 +2797,10 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
       return uriListResponse(zelleMailto());
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/zelle.png' || url.pathname === '/v1/pay/zelle.qr')) {
+      return Response.redirect(zelleQrUrl(), 302);
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/zelle') {
       const payUri = zelleMailto();
       if (wantsUriList(request)) return uriListResponse(payUri);
@@ -2793,12 +2821,12 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
         );
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<meta http-equiv="refresh" content="0;url=${payUri}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
-<p>Opening card checkout. Or stay and send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>Opening the $42 memo. Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account. Scan the QR in a banking app that reads mailto invoices.</p>
+<p><img src="${zelleQrUrl()}" width="240" height="240" alt="QR code for $42 Zelle to 3labsio@gmail.com"></p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
 <li>Amount: <strong>$42.00</strong></li>
@@ -2817,7 +2845,6 @@ ${cardFallbackHtml()}
   if (PAY_URI) location.replace(PAY_URI);
 })();
 </script>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -3155,6 +3182,7 @@ ${cardFallbackHtml()}
             btc_qr: `${url.origin}/v1/pay/btc.png`,
             zelle: `${url.origin}/v1/pay/zelle`,
             zelle_uri: `${url.origin}/v1/pay/zelle.uri`,
+            zelle_qr: `${url.origin}/v1/pay/zelle.png`,
             store: 'https://store.3labs.io',
             pack_uri: `${url.origin}/v1/pay/pack.uri`,
             tip_uri: `${url.origin}/v1/pay/tip-jar.uri`,
