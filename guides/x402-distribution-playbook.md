@@ -337,6 +337,33 @@ Read that header on every settle, and log it. Two independent things have to be 
 the declaration must *reach* the facilitator and it must *validate* — and the header is the
 only place either one is confirmed.
 
+**And now the part that makes this genuinely nasty, which took us a day longer to see.**
+
+That advice is necessary and insufficient, because **the instrument is anti-correlated with its
+own subject.** The rejection is reported only on a settlement. A rejected declaration means no
+catalog entry; no catalog entry means no agent discovers you; no discovery means **no settlement
+ever happens**. The signal that would tell you is produced only by the traffic the failure
+prevents. The worse the defect, the more certain the silence.
+
+So "log the header and watch" is not a plan — it is a plan that terminates only if you were
+already fine. Two consequences:
+
+- **Waiting produces no information.** A month of nothing tells you exactly what an hour of
+  nothing tells you. If you are debugging invisibility, do not treat elapsed time as evidence.
+- **There is no free dry run.** We tried: a deliberately invalid payload gets a `400` from CDP at
+  payload validation, *before* extensions are examined, so no header is emitted. Validating a
+  declaration costs a real settlement.
+
+The general form, which is worth more than the x402 specifics: **an instrument that shares a
+substrate with the thing it measures will report the substrate.** Before trusting any control's
+telemetry, ask *if this failed maximally, would my instrument produce more signal or less?* More
+is healthy. **Less means the reading gets more reassuring exactly as the situation deteriorates**,
+and you need a witness authored somewhere the mechanism cannot reach.
+
+A validator with no dry run has one more property worth naming out loud: it makes **malformation
+indistinguishable from absence of demand**, and charges the fee for finding out. We read our own
+silence as a market signal for the better part of a week. It was a receipt we had not paid for.
+
 **Assert the shape in a test**, because you cannot eyeball `additionalProperties: false`. The
 cheap version, no schema library required: take the keys of `info.input`, subtract the keys of
 `schema.properties.input.properties`, and fail if anything remains.
