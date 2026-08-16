@@ -1444,7 +1444,7 @@ function payIndexHtml(origin, btc = null) {
 <p>Other ways:</p>
 <ul>
 <li><a href="${origin}/v1/pay/card">Card checkout page</a> — opens the same $42 Stripe link</li>
-<li><a href="https://store.3labs.io">Browse the store</a> — Governance Pack, CMO kit, tip jar</li>
+<li><a href="https://store.3labs.io">Browse the store</a> — pack, CMO, tip jar, and live C-suite Word kits</li>
 <li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, Gumroad card</li>
 <li><a href="${origin}/v1/pay/cmo">$39 Fractional CMO kit</a> — humans and agents</li>
 <li><a href="${origin}/v1/pay/cfo">$42 Fractional CFO kit</a> — six Word templates + ZIP</li>
@@ -1452,7 +1452,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/cto">$42 Fractional CTO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/ciso">$42 Fractional CISO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
-<li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO live; CFO, COO, CTO, CISO operating contracts</li>
+<li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO, CFO, COO, CTO, CISO Word kits live</li>
 </ul>
 <p>Or pay another way:</p>
 <ul>
