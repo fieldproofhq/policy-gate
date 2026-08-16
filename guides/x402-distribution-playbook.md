@@ -203,14 +203,32 @@ POST /v0/auth/http
 { "domain": "...", "timestamp": "2026-08-16T06:20:00Z", "signed_timestamp": "<hex>" }
 ```
 
-The signature is **hex, not base64**. The returned token is scoped to the reverse-DNS form of
-your domain and lives about five minutes — authenticate and publish in one script.
+The signature is **hex, not base64**. The token lives about five minutes — authenticate and
+publish in one script.
 
-**4. Publish**, respecting two constraints that only appear as 422s:
+The field in the auth response is **`registry_token`**, not `token`. Reading the wrong key
+gives you `undefined`, which the publish endpoint reports as
+`token is malformed: token contains an invalid number of segments` — an error that sounds like
+a signing problem and is actually a typo three lines earlier.
 
+**4. Publish**, respecting constraints that only appear as 4xx:
+
+- The publish body is the server object **flat at the top level**, not wrapped in
+  `{ "server": {...} }`. Wrapping it returns
+  `expected required property $schema to be present` *while echoing your value back with the
+  fields plainly present* — because the validator is describing the outer object, not yours.
+- `$schema` is required:
+  `https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json`
 - `description` must be **≤ 100 characters**
 - `name` must match `^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$` — exactly one slash. A domain
   `foo.example.dev` becomes namespace `dev.example.foo`.
+- Re-publishing an unchanged `version` returns 400
+  `invalid version: cannot publish duplicate version`. Bump it; there is no upsert.
+
+**Check whether you are already listed before debugging a publish.** `?search=` matches loosely
+and ranks other servers above yours, so a search for a word in your name can return five
+strangers and convince you that you were never published. Query the full name, or trust the
+duplicate-version 400 — it is the registry telling you the entry exists.
 
 **Why bother:** downstream registries consume the official registry's API. One verified entry
 propagates instead of needing a submission per directory. It is the only listing here with
