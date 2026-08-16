@@ -756,7 +756,6 @@ function payIndexHtml(origin, btc = null) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
 <p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
-<p>Need a real integration instead? <a href="mailto:3labsio@gmail.com?subject=Fieldproof%20one-flow%20pilot">Request a one-flow pilot</a> with proposal, authority, outcome, refusal, and replay evidence.</p>
 <p>Card first:</p>
 <ul>
 <li><a href="${STRIPE_PAYMENT_LINK}">$42 with card</a> — live Stripe Payment Link</li>
@@ -1202,6 +1201,24 @@ export default {
       );
     }
 
+    if (request.method === 'GET' && (url.pathname === '/pay' || url.pathname === '/pay/')) {
+      return Response.redirect(STRIPE_PAYMENT_LINK, 302);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/llms.txt') {
+      const body = [
+        '# Fieldproof',
+        '',
+        'Pay $42: https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00',
+        'Short pay URL: https://policy-gate.3labsio.workers.dev/pay',
+        'Card, Cash App, Link, US bank debit, Klarna.',
+        'Store: https://store.3labs.io',
+        'USDC/BTC/Zelle: https://policy-gate.3labsio.workers.dev/v1/pay',
+        '',
+      ].join('\n');
+      return new Response(body, { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8', ...corsHeaders() } });
+    }
+
     if (request.method === 'GET' && (url.pathname === '/v1/pay' || url.pathname === '/v1/pay/')) {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
@@ -1231,7 +1248,7 @@ ${cardFallbackHtml()}
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 with card</h1>
-<p>One <strong>$42</strong> payment on Stripe. Hosted checkout — no Fieldproof account required. Pays with <strong>card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, or <strong>US bank debit</strong>.</p>
+<p>One <strong>$42</strong> payment on Stripe. Hosted checkout — no Fieldproof account required. Pays with <strong>card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, <strong>US bank debit</strong>, or <strong>Klarna</strong>.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p><a href="${STRIPE_PAYMENT_LINK}"><img src="${qrUrl}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
 <p>Direct link: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
