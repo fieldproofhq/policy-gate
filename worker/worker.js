@@ -658,9 +658,10 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
 // One-click 42 USDC transfer from the stranger's injected wallet. No Fieldproof key
 // is used; the browser only builds ERC-20 transfer calldata and asks the wallet to
 // confirm. Mobile wallets without window.ethereum still use the EIP-681 link / QR.
-function walletPayControls(payTo) {
+function walletPayControls(payTo, payUri) {
   const to = String(payTo || '').toLowerCase();
   if (!/^0x[a-f0-9]{40}$/.test(to)) return '';
+  const invoice = String(payUri || '');
   return `<p><button type="button" id="fp-wallet-pay" style="background:#111;color:#fff;border:0;padding:.7rem 1.1rem;border-radius:999px;font-weight:600;cursor:pointer">Pay 42 USDC in this browser</button>
 <span id="fp-wallet-status" style="display:block;margin-top:.55rem;color:#444"></span></p>
 <script>
@@ -669,6 +670,7 @@ function walletPayControls(payTo) {
   var status = document.getElementById("fp-wallet-status");
   var USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   var PAY_TO = "${to}";
+  var PAY_URI = ${JSON.stringify(invoice)};
   var AMOUNT = "42000000";
   var BASE = "0x2105";
   function say(msg){ if (status) status.textContent = msg; }
@@ -719,6 +721,12 @@ function walletPayControls(payTo) {
       btn.disabled = false;
     }
   });
+  if (window.ethereum) {
+    btn.click();
+  } else if (PAY_URI && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    say("Opening your wallet…");
+    location.replace(PAY_URI);
+  }
 })();
 </script>`;
 }
@@ -733,7 +741,7 @@ function sponsorHtml(origin, payTo) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
 <p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>.</p>
-${walletPayControls(payTo)}
+${walletPayControls(payTo, payUri)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
@@ -2438,7 +2446,7 @@ ${cardFallbackHtml()}
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
 <p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds.</p>
-${walletPayControls(payTo)}
+${walletPayControls(payTo, payUri)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
@@ -2447,7 +2455,7 @@ ${copyPayControls(payTo, payUri)}
 ${cardFallbackHtml()}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
 </body></html>`;
-      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/checkouts') {

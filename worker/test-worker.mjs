@@ -423,6 +423,8 @@ assert.match(payPage, /Pay 42 USDC in this browser/);
 assert.match(payPage, /eth_sendTransaction/);
 assert.match(payPage, /0xa9059cbb/);
 assert.match(payPage, /wallet_switchEthereumChain/);
+assert.match(payPage, /btn\.click\(\)/);
+assert.match(payPage, /location\.replace\(PAY_URI\)/);
 assert.doesNotMatch(payPage, /private[_ ]?key/i);
 assert.match(payPage, /Pay \$42 with card/);
 assert.match(payPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
