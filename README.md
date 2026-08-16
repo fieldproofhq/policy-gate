@@ -99,7 +99,7 @@ curl -s https://policy-gate.3labsio.workers.dev/v1/check -d '{
 
 The reference policy in this repo is one artifact extracted from the **Agentic AI Governance Pack** — the written governance this business actually runs on. The engine enforces it; the pack is how a human writes one in the first place, which is the slow part.
 
-Seven documents, [$59 at store.3labs.io](https://store.3labs.io/l/agentic-ai-governance-pack):
+Seven documents, [$42 first-customer offer at store.3labs.io](https://store.3labs.io/l/agentic-ai-governance-pack):
 
 | # | Document | What it is for |
 |---|---|---|
