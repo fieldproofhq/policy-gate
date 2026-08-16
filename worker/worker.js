@@ -817,6 +817,22 @@ function npmFunding() {
   ];
 }
 
+function securityTxt(origin) {
+  return [
+    'Contact: mailto:3labsio@gmail.com',
+    `Contact: ${origin}/v1/invoice`,
+    `Expires: 2027-08-16T00:00:00.000Z`,
+    'Preferred-Languages: en',
+    `Canonical: ${origin}/.well-known/security.txt`,
+    `Policy: ${origin}/skills/pay/SKILL.md`,
+    `Hiring: https://fieldproofhq.github.io/offer/`,
+    `# Pay $42: ${STRIPE_PAYMENT_LINK}`,
+    `# Card URI: ${origin}/v1/pay/card.uri`,
+    `# Zelle $42: ${origin}/v1/pay/zelle.uri`,
+    '',
+  ].join('\n');
+}
+
 function openApiSpec(origin) {
   const fallback = stripeFallbackOffer();
   return {
@@ -831,6 +847,13 @@ function openApiSpec(origin) {
     servers: [{ url: origin }],
     externalDocs: { description: 'Pay $42 with card', url: STRIPE_PAYMENT_LINK },
     paths: {
+      '/.well-known/security.txt': {
+        get: {
+          operationId: 'securityTxt',
+          summary: 'RFC 9116 security.txt. Contact is the $42 Zelle inbox and the live invoice.',
+          responses: { 200: { description: 'text/plain security.txt with live $42 rails' } },
+        },
+      },
       '/package.json': {
         get: {
           operationId: 'npmFunding',
@@ -1751,6 +1774,7 @@ export default {
         `${url.origin}/openapi.json`,
         `${url.origin}/.well-known/ai-plugin.json`,
         `${url.origin}/.well-known/mcp.json`,
+        `${url.origin}/.well-known/security.txt`,
         `${url.origin}/.well-known/llms.txt`,
         `${url.origin}/llms-full.txt`,
         `${url.origin}/package.json`,
@@ -1803,6 +1827,7 @@ export default {
         `- MCP pay tool (first_42_sponsor): ${url.origin}/mcp`,
         `- Agent skill: ${url.origin}/skills/pay/SKILL.md`,
         `- npm funding (package.json): ${url.origin}/package.json`,
+        `- security.txt: ${url.origin}/.well-known/security.txt`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2191,6 +2216,20 @@ ${cardFallbackHtml()}
 
     if (
       request.method === 'GET' &&
+      (url.pathname === '/.well-known/security.txt' || url.pathname === '/security.txt')
+    ) {
+      return new Response(securityTxt(url.origin), {
+        status: 200,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (
+      request.method === 'GET' &&
       (url.pathname === '/skills/pay/SKILL.md' ||
         url.pathname === '/skills/pay' ||
         url.pathname === '/skills/pay/' ||
@@ -2256,6 +2295,7 @@ ${cardFallbackHtml()}
             store: 'https://store.3labs.io',
             pack_uri: `${url.origin}/v1/pay/pack.uri`,
             tip_uri: `${url.origin}/v1/pay/tip-jar.uri`,
+            security: `${url.origin}/.well-known/security.txt`,
           },
         },
         {},
