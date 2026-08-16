@@ -1683,18 +1683,18 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/tip-jar`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: GUMROAD_TIP,
+      pay_uri: STRIPE_PAYMENT_LINK,
       meets_first_42: true,
-      note: 'HTML pay landing then Gumroad tip-jar checkout; $42 suggested amount meets the bar only if a stranger pays it',
+      note: 'HTML pay landing auto-opens the live $42 Stripe checkout; Gumroad overlay stays secondary',
     },
     {
       id: 'tip-uri',
       url: `${origin}/v1/pay/tip-jar.uri`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: GUMROAD_TIP,
+      pay_uri: STRIPE_PAYMENT_LINK,
       meets_first_42: true,
-      note: 'text/uri-list of the live $42 Gumroad tip-jar checkout; agents open the first URI',
+      note: 'text/uri-list of the live $42 Stripe Payment Link; agents open the first URI',
     },
     {
       id: 'x402-check',
@@ -2631,23 +2631,24 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/tip-jar.uri' || url.pathname === '/v1/pay/tip-jar.txt')) {
-      return uriListResponse(GUMROAD_TIP);
+      return uriListResponse(STRIPE_PAYMENT_LINK);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/tip-jar') {
       const checkout = GUMROAD_TIP;
-      if (wantsUriList(request)) return uriListResponse(checkout);
+      if (wantsUriList(request)) return uriListResponse(STRIPE_PAYMENT_LINK);
       if (wantsJson(request)) {
         return json(
           200,
           {
-            scheme: 'gumroad',
+            scheme: 'stripe',
             asset: 'USD',
             amountUsd: GOAL_USD,
-            uri: checkout,
-            url: checkout,
+            uri: STRIPE_PAYMENT_LINK,
+            url: STRIPE_PAYMENT_LINK,
             product: 'tip-jar',
             card: STRIPE_PAYMENT_LINK,
+            gumroad: checkout,
           },
           { Link: paymentLinkHeader() },
           true
