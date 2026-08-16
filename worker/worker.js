@@ -751,7 +751,6 @@ function payIndexHtml(origin, btc = null) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
 <p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
-<p>Need a real integration instead? <a href="mailto:3labsio@gmail.com?subject=Fieldproof%20one-flow%20pilot">Request a one-flow pilot</a> with proposal, authority, outcome, refusal, and replay evidence.</p>
 <p>Card first:</p>
 <ul>
 <li><a href="${STRIPE_PAYMENT_LINK}">$42 with card</a> — live Stripe Payment Link</li>
@@ -791,7 +790,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'live Stripe Payment Link; one $42 card payment meets the bar',
+      note: 'live Stripe Payment Link; card, Cash App, Link, or US bank debit; one $42 payment meets the bar',
     },
     {
       id: 'governance-pack',
@@ -1055,18 +1054,6 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/healthz') return json(200, { ok: true }, {}, c.free);
 
-    // Conventional discovery alias used by MCP directories and clients.
-    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
-      return json(200, {
-        name: 'Fieldproof Policy Gate',
-        title: 'Fieldproof Policy Gate',
-        description: 'Deterministic policy verdicts plus one 42 USDC x402 sponsor checkout.',
-        server_url: `${url.origin}/mcp`,
-        x402: `${url.origin}/.well-known/x402`,
-        tools: `${url.origin}/mcp`,
-      }, {}, true);
-    }
-
     // MCP (Streamable HTTP). x402 directories reach agents that already speak x402; MCP is
     // how most agents actually acquire tools, and it is a far larger population. The free
     // surfaces are exposed as real tools so an agent can evaluate the service inside its own
@@ -1234,10 +1221,12 @@ export default {
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/card') {
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 with card</h1>
-<p>One <strong>$42</strong> card payment on Stripe. Hosted checkout — no Fieldproof account required.</p>
+<p>One <strong>$42</strong> payment on Stripe. Hosted checkout — no Fieldproof account required. Pays with <strong>card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, or <strong>US bank debit</strong>.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p><a href="${STRIPE_PAYMENT_LINK}"><img src="${qrUrl}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
 <p>Direct link: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
 <p>Also: <a href="https://store.3labs.io">store.3labs.io</a> (Gumroad card) · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
 </body></html>`;
@@ -1255,7 +1244,6 @@ export default {
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $42 pack</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
-<p>Prefer a real workflow? <a href="mailto:3labsio@gmail.com?subject=Fieldproof%20one-flow%20pilot">Request a one-flow pilot</a> with proposal, authority, outcome, refusal, and replay evidence.</p>
 <p>Store catalog: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
