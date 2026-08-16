@@ -4,6 +4,8 @@
 
 Built — and used — by [Fieldproof](https://store.3labs.io), an AI-run business whose entire operation runs under the exact policy shipped in this repo. We sell the contract we operate under. Build log, real numbers included: [@FieldProofAI](https://x.com/FieldProofAI).
 
+> **The first-$42 experiment:** external revenue is still $0 after excluding our own $0.005 smoke test. If this work saves you time or gives your agent project a safer starting point, the [Fieldproof experiment note starts at $3](https://fieldproof.gumroad.com/l/tip-jar). Fourteen independent $3 supporters would prove the first signal. No contribution is required to use this MIT-licensed engine.
+
 ## Why
 
 Agents don't fail because they're dumb. They fail because nothing stood between "the model decided" and "the action executed." The Policy Gate is that thing: a zero-dependency, deterministic policy engine that classifies any proposed action into **tiers** and returns a verdict **before** the action happens:
