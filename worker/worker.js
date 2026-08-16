@@ -529,7 +529,7 @@ function sponsorHtml(origin, payTo) {
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay 42 USDC on Base</h1>
-<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong> meets Fieldproof's first-$42 external-income bar. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>. Self-pays and the $0.005 self-test do not count.</p>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>.</p>
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
@@ -656,14 +656,16 @@ function payIndexHtml(origin, btc = null) {
     : `~$42 of BTC`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
-<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of <strong>$42</strong> meets the bar. Self-buys and the $0.005 self-test do not count.</p>
-<p>Card first — these live Gumroad checkouts are $42:</p>
+<p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
+<p>Card first:</p>
 <ul>
-<li><a href="https://store.3labs.io">Browse the $42 store</a> — pack, tip jar, and CMO on one page</li>
-<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — card; one sale meets $42</li>
-<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — card; listed at $42</li>
+<li><a href="https://store.3labs.io">Browse the store</a> — Governance Pack, CMO kit, tip jar</li>
+<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, card checkout</li>
+<li><a href="${origin}/v1/pay/cmo">$39 Fractional CMO kit</a> — humans and agents</li>
+<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
+<li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO live; CFO, COO, CTO, CISO operating contracts</li>
 </ul>
-<p>Or send $42 another way:</p>
+<p>Or pay another way:</p>
 <ul>
 <li><a href="${origin}/v1/sponsor">42 USDC / x402</a> — browser QR or agent POST /v1/sponsor</li>
 <li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
@@ -672,7 +674,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
 <li><a href="${origin}/v1/pay/x402">x402 agent checks</a> — $0.005 USDC each; 8400 = $42</li>
 </ul>
-<p>Live observer: <a href="${origin}/v1/received">GET /v1/received</a>. Scoreboard: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
+<p>More: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
 <script>
 fetch('${origin}/v1/received').then(function(r){return r.json()}).then(function(o){
   if (!o || typeof o.remainingUsd !== 'number') return;
@@ -1092,7 +1094,7 @@ export default {
       const checks = Number(price) > 0 ? Math.ceil(42 / Number(price)) : 8400;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 via x402 — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay $42 via x402</h1>
-<p>One unpaid <code>GET</code> or <code>POST /v1/sponsor</code> quotes <strong>42 USDC on Base</strong> and meets the first-$42 bar. Self-pays and the $0.005 self-test do not count. <a href="${url.origin}/v1/sponsor">Open the $42 sponsor checkout</a>.</p>
+<p>One unpaid <code>GET</code> or <code>POST /v1/sponsor</code> quotes <strong>42 USDC on Base</strong>. <a href="${url.origin}/v1/sponsor">Open the 42 USDC checkout</a>.</p>
 <pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${url.origin}/v1/sponsor</pre>
 <p>Pay to <code>${payTo}</code> on <code>${c.network || 'eip155:8453'}</code>. Discovery: <a href="/.well-known/x402">/.well-known/x402</a>.</p>
 <p>Per-check path (does not meet $42 alone): agents pay <strong>$${price}</strong> per <code>POST /v1/check</code> (${checks} checks = $42). Evaluate free first: <a href="/v1/example">GET /v1/example</a>.</p>
@@ -1109,7 +1111,7 @@ export default {
       const cover = 'https://public-files.gumroad.com/k5vh8fw0i5jkr4pzz9zveemcfjax';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Governance Pack</h1>
-<p>One sale is <strong>$42</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad. Self-buys do not count.</p>
+<p>Seven editable templates this AI-run business actually operates under. Card checkout via Gumroad, <strong>$42</strong>.</p>
 <p><a href="${checkout}"><img src="${cover}" alt="Agentic AI Governance Pack" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${checkout}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $42 pack</a></p>
@@ -1123,9 +1125,9 @@ export default {
       const checkout = 'https://store.3labs.io/l/fractional-cmo-launch-kit?wanted=true';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $39 CMO Launch Kit — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Buy the $39 Fractional CMO Launch Kit</h1>
-<p>This live Gumroad product is <strong>$39</strong>. That counts toward Fieldproof's first-$42 external-income bar but <strong>does not meet $42 alone</strong>.</p>
+<p>Land a fractional CMO practice in 30 days — or load the same kit so an agent can hold the seat. <strong>$39</strong>.</p>
 <p><a href="${checkout}">Open $39 checkout</a></p>
-<p>After paying, sales show on the Gumroad dashboard. Self-buys do not count.</p>
+<p>Agent operating contract: <a href="https://fieldproofhq.github.io/csuite/cmo/">fieldproofhq.github.io/csuite/cmo</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
@@ -1134,7 +1136,7 @@ export default {
       const checkout = 'https://fieldproof.gumroad.com/l/tip-jar?wanted=true';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via tip jar — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Send $42 via the tip jar</h1>
-<p>The Fieldproof tip jar is now listed at <strong>$42</strong> (pay more if you want). One stranger payment meets the first-$42 bar. Self-sends do not count.</p>
+<p>The Fieldproof tip jar is listed at <strong>$42</strong>. Pay more if you want.</p>
 <p><a href="${checkout}">Open tip-jar checkout</a></p>
 <p>After paying, sales show on the Gumroad dashboard. A checkout overlay is not income.</p>
 </body></html>`;
@@ -1150,7 +1152,7 @@ export default {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay $42 in Bitcoin</h1>
-<p>Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public P2WPKH below. Mempool.space is the observer. Self-sends do not count.</p>
+<p>Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public P2WPKH below.</p>
 <p><a href="${payUri}">Open in wallet (BIP21)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for Bitcoin BIP21 invoice"></p>
 <p>Pay to:</p>
@@ -1163,7 +1165,7 @@ export default {
     if (request.method === 'GET' && url.pathname === '/v1/pay/zelle') {
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Send $42 via Zelle</h1>
-<p>One Zelle transfer of <strong>$42 USD</strong> meets Fieldproof's first-$42 external-income bar. Zero fees. Self-sends do not count.</p>
+<p>Send <strong>$42 USD</strong> via Zelle. Zero fees.</p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
 <li>Amount: <strong>$42.00</strong></li>
@@ -1181,7 +1183,7 @@ export default {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay 42 USDC on Base</h1>
-<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong> meets Fieldproof's first-$42 external-income bar. Other networks may lose the funds.</p>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds.</p>
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
