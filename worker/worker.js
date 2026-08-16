@@ -703,6 +703,53 @@ function paymentLinkHeader() {
   return `<${STRIPE_PAYMENT_LINK}>; rel="payment"; title="Pay $42 with card"`;
 }
 
+/** A2A Agent Card. A2A clients GET /.well-known/agent-card.json (and legacy agent.json). */
+function agentCard(origin) {
+  const fallback = stripeFallbackOffer();
+  return {
+    protocolVersion: '0.3.0',
+    name: 'Fieldproof Policy Gate',
+    description:
+      'Deterministic allow / require_approval / deny verdicts for agent actions. Pay $42 with card or 42 USDC on Base.',
+    url: `${origin}/mcp`,
+    version: '0.2',
+    provider: { organization: 'Fieldproof', url: 'https://fieldproofhq.github.io' },
+    documentationUrl: 'https://github.com/fieldproofhq/policy-gate',
+    capabilities: { streaming: false, pushNotifications: false },
+    defaultInputModes: ['application/json', 'text'],
+    defaultOutputModes: ['application/json', 'text'],
+    preferredTransport: 'JSONRPC',
+    additionalInterfaces: [
+      { url: `${origin}/mcp`, transport: 'JSONRPC' },
+      { url: `${origin}/v1/check`, transport: 'HTTP+JSON' },
+    ],
+    skills: [
+      {
+        id: 'pay-42',
+        name: 'Pay Fieldproof $42',
+        description:
+          'One $42 payment that meets the first-$42 bar. Open fallback.url for card, or POST /v1/sponsor for 42 USDC on Base.',
+        tags: ['payment', 'stripe', 'x402', 'usdc'],
+        examples: ['Pay Fieldproof $42 with a card', 'Settle 42 USDC on Base via x402'],
+        inputModes: ['text'],
+        outputModes: ['application/json'],
+      },
+      {
+        id: 'policy-check',
+        name: 'Policy check',
+        description:
+          'Evaluate a proposed agent action. Free samples at GET /v1/example. Unpaid POST /v1/check returns x402 plus a card fallback.',
+        tags: ['governance', 'policy', 'x402'],
+        examples: ['May I send a $20 payment?'],
+        inputModes: ['application/json'],
+        outputModes: ['application/json'],
+      },
+    ],
+    fallback,
+    card: STRIPE_PAYMENT_LINK,
+  };
+}
+
 function satsForGoal(priceUsd, goalUsd = GOAL_USD) {
   const price = Number(priceUsd);
   const goal = Number(goalUsd);
@@ -1261,6 +1308,7 @@ export default {
         `${url.origin}/mcp`,
         `${url.origin}/.well-known/x402`,
         `${url.origin}/.well-known/pay`,
+        `${url.origin}/.well-known/agent-card.json`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
@@ -1500,6 +1548,13 @@ ${cardFallbackHtml()}
     // the private half exists solely outside this repo and is never committed. Publishing
     // to the official registry matters because downstream directories consume its API, so
     // one verified entry propagates rather than needing a submission per directory.
+    if (
+      request.method === 'GET' &&
+      (url.pathname === '/.well-known/agent-card.json' || url.pathname === '/.well-known/agent.json')
+    ) {
+      return json(200, agentCard(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
     if (request.method === 'GET' && url.pathname === '/.well-known/mcp-registry-auth') {
       return new Response('v=MCPv1; k=ed25519; p=EGbytDYPTQb3C/N/jNxx/kq5l8U5kXJTeW5Kw4yXsAM=', {
         status: 200,
