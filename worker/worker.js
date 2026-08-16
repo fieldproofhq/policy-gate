@@ -525,9 +525,9 @@ function wantsHtml(request) {
 }
 
 function wantsSponsorPage(request) {
-  const accept = request.headers.get('accept') || '';
-  if (/application\/json/i.test(accept)) return false;
-  return true;
+  // Browsers send text/html. Directory probes, curl, and agents usually send
+  // nothing, */*, or application/json — those must get the $42 402 quote.
+  return wantsHtml(request);
 }
 
 function copyPayControls(address, payUri, addressLabel = 'Copy address', invoiceLabel = 'Copy invoice') {
