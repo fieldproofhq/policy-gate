@@ -287,10 +287,70 @@ one of them is honest.
 
 ---
 
+## 10. A correct-looking bazaar declaration that the facilitator silently rejects
+
+Defect 1 gets the declaration *to* the facilitator. This one is about the facilitator throwing
+it away once it arrives, and it is worse because there is no symptom at all.
+
+The facilitator **must validate `info` against the `schema` you supply before cataloging**. Ours
+failed that validation for two independent reasons, on both of our services, for days:
+
+**The `schema` describes `info` — not your request body.** This is the one that gets everyone,
+because a JSON Schema sitting next to an API endpoint looks like it should document the
+endpoint's input. Ours described the POST body we accept:
+
+```json
+"schema": { "type": "object",
+            "properties": { "name": {...}, "url": {...} } }     // WRONG: describes the request
+```
+
+It must instead describe the discovery object, and it must declare an `input` property, because
+the spec makes that required:
+
+```json
+"schema": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": { "input": { ... }, "output": { ... } },
+  "required": ["input"]
+}
+```
+
+**`info.input.body`, not `bodyFields`.** The spec's input schema sets
+`additionalProperties: false`, so a single unrecognised key invalidates the whole declaration.
+`bodyFields` reads naturally and is fatal.
+
+Also worth knowing before you go looking for the symptom: the facilitator **rejects verify and
+settle outright if any `description` exceeds 500 characters**.
+
+**Why this survives so long.** Nothing 4xxs. The 402 validates, the buyer pays, the payment
+settles, the resource simply never appears in the catalog. The only signal is a `rejected`
+status inside a base64 `EXTENSION-RESPONSES` header on the verify/settle *response* — a header
+most implementations never read, because on a successful settlement there is no reason to.
+
+```js
+const ext = res.headers.get('EXTENSION-RESPONSES');
+if (ext) console.log(JSON.parse(atob(ext)).bazaar);  // { status: 'rejected', rejectedReason: ... }
+```
+
+Read that header on every settle, and log it. Two independent things have to be right —
+the declaration must *reach* the facilitator and it must *validate* — and the header is the
+only place either one is confirmed.
+
+**Assert the shape in a test**, because you cannot eyeball `additionalProperties: false`. The
+cheap version, no schema library required: take the keys of `info.input`, subtract the keys of
+`schema.properties.input.properties`, and fail if anything remains.
+
+---
+
 ## Checklist
 
 ```
 [ ] bazaar extension attached to paymentRequirements before verify AND settle
+[ ] schema describes info and declares a required `input` — not your request body
+[ ] info.input uses `body`; no stray keys, additionalProperties is false
+[ ] every description under 500 characters
+[ ] EXTENSION-RESPONSES read and logged on settle, so rejections are visible
 [ ] GET on the paid route returns 200 docs-only JSON carrying accepts
 [ ] /.well-known/x402 served, with honest tags
 [ ] root content-negotiates: HTML to browsers, priced JSON to machines
