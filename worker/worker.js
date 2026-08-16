@@ -3491,15 +3491,13 @@ ${cardFallbackHtml()}
         const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
         const payUri = usdcEip681(payTo);
         const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Policy Gate check</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay $42 to use POST /v1/check</h1>
-<p>Opening checkout. One $42 card payment, or 42 USDC on Base. POST without payment still returns 402.</p>
+<h1>POST /v1/check</h1>
+<p>This page stays here so you can pick a rail. POST without payment still returns 402. Card checkout delivers the Ethics Check and C-suite Word ZIPs, not the Governance Pack.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 ${walletPayControls(payTo, payUri)}
-<p>Agents: <code>POST /v1/check</code> with a policy and request. Free evaluation: <a href="/v1/example">GET /v1/example</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>Agents: <code>POST /v1/check</code> with a policy and request. Free evaluation: <a href="/v1/example">GET /v1/example</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
         return new Response(html, {
           status: 200,
@@ -3597,11 +3595,37 @@ ${walletPayControls(payTo, payUri)}
         });
       }
       const priced = pricedCfg(c, ETHICS_PRICE_USD, 'Screen a declared action against the seven canons');
+      // A paid endpoint whose docs omit the request shape is a paywall in front of a guess.
+      // This one shipped with no `usage` at all: price, but no way to know what to send.
       return json(200, {
         endpoint: `${url.origin}/v1/ethics-check`,
         method: 'POST',
         price_usd: ETHICS_PRICE_USD,
         canons: `${url.origin}/v1/canons`,
+        usage: `POST ${url.origin}/v1/ethics-check with { "action": "...", "summary"?: "...", "declared"?: { ... } }`,
+        what_it_does:
+          'Screens a DECLARED action against seven canons and returns clear | reflect | stop, with the canons ' +
+          'that fired and why. Deterministic, no model in the path. It answers "should I?" — the Policy Gate at ' +
+          '/v1/check answers "am I allowed to?", and they are different questions.',
+        declared_fields: {
+          deception: 'boolean — does the act depend on someone believing something untrue',
+          disclosure: 'boolean — would you do it if it were published',
+          affects_others: 'boolean — are other beings affected',
+          consent: 'boolean — have those beings agreed',
+          reversible: 'boolean — can the act be undone',
+          impact_usd: 'number — magnitude of the effect',
+          data_sensitivity: 'string — e.g. none | internal | personal',
+        },
+        example_request: {
+          action: 'messages.send',
+          summary: 'Email 400 customers about a pricing change',
+          declared: { deception: false, disclosure: true, affects_others: true, consent: false, reversible: false, impact_usd: 0 },
+        },
+        limitation:
+          'It screens the DECLARATION, not the world. It cannot see what you do not declare, and an undeclared ' +
+          'field is returned as a question rather than passing silently. A screening tool that oversells its ' +
+          'coverage commits the failure its own first canon names.',
+        free_first: `${url.origin}/v1/canons`,
         accepts: c.free ? [] : [paymentRequirementsV1(priced, `${url.origin}/v1/ethics-check`)],
         note: 'POST without payment returns 402 with signing instructions.',
       }, {}, true);
