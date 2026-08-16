@@ -1158,14 +1158,28 @@ export default {
       const btcAmount = sats ? (sats / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '') : null;
       const payUri = sats ? `bitcoin:${BTC_ADDRESS}?amount=${btcAmount}` : `bitcoin:${BTC_ADDRESS}`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 in Bitcoin</h1>
-<p>Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public P2WPKH below.</p>
+<p>Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below.</p>
 <p><a href="${payUri}">Open in wallet (BIP21)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for Bitcoin BIP21 invoice"></p>
 <p>Pay to:</p>
-<pre style="white-space:pre-wrap;word-break:break-all">${BTC_ADDRESS}</pre>
-<p>Explorer: <a href="https://mempool.space/address/${BTC_ADDRESS}">mempool.space</a> · after sending, check <a href="/v1/received">GET /v1/received</a>.</p>
+<pre id="btc-address" style="white-space:pre-wrap;word-break:break-all">${BTC_ADDRESS}</pre>
+<p>
+<button type="button" data-copy="${BTC_ADDRESS}">Copy address</button>
+<button type="button" data-copy="${payUri}">Copy invoice</button>
+</p>
+<p>Explorer: <a href="https://mempool.space/address/${BTC_ADDRESS}">mempool.space</a>.</p>
+<script>
+document.querySelectorAll("[data-copy]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var text = btn.getAttribute("data-copy") || "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ btn.textContent = "Copied"; }).catch(function(){});
+    }
+  });
+});
+</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }

@@ -226,6 +226,10 @@ assert.match(btcPage, /bitcoin:bc1q/);
 assert.match(btcPage, /bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t/);
 assert.match(btcPage, /create-qr-code/);
 assert.match(btcPage, /bitcoin%3Abc1q/);
+assert.match(btcPage, /data-copy="bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t"/);
+assert.match(btcPage, /Copy address/);
+assert.match(btcPage, /Copy invoice/);
+assert.match(btcPage, /navigator\.clipboard/);
 
 const selfTest = assessReceived(0.005, '2026-08-16T06:30:00.000Z');
 assert.equal(selfTest.externalUsd, 0);
