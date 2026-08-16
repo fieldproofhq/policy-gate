@@ -2524,6 +2524,12 @@ ${cardFallbackHtml()}
     if (request.method === 'GET' && url.pathname === '/v1/checkouts') {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
+      if (wantsHtml(request)) {
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(
         200,
         { checkouts: checkouts(c, url.origin, btc), card: STRIPE_PAYMENT_LINK, fallback: stripeFallbackOffer() },
