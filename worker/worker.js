@@ -2632,11 +2632,12 @@ ${cardFallbackHtml()}
       }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${payUri}">
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 in Bitcoin</h1>
-<p>Opening wallet. Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below.</p>
+<p>Opening card checkout. Or stay and send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p><a href="${payUri}" id="fp-btc-open" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open in wallet (BIP21)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for Bitcoin BIP21 invoice"></p>
 <p>Pay to:</p>
@@ -2664,6 +2665,7 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
   if (PAY_URI) location.replace(PAY_URI);
 })();
 </script>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -2692,11 +2694,12 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
         );
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${payUri}">
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
-<p>Opening the $42 memo. Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account.</p>
+<p>Opening card checkout. Or stay and send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
 <li>Amount: <strong>$42.00</strong></li>
@@ -2715,6 +2718,7 @@ ${cardFallbackHtml()}
   if (PAY_URI) location.replace(PAY_URI);
 })();
 </script>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
