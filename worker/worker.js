@@ -616,6 +616,10 @@ function walletPayControls(payTo) {
 </script>`;
 }
 
+function cardFallbackHtml() {
+  return `<p>Prefer card? <a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.55rem .95rem;border-radius:999px;font-weight:600">Pay $42 with card</a> — also Cash App, Link, or US bank debit.</p>`;
+}
+
 function sponsorHtml(origin, payTo) {
   const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
@@ -628,6 +632,7 @@ ${walletPayControls(payTo)}
 <p>Pay to:</p>
 <pre style="white-space:pre-wrap;word-break:break-all">${payTo}</pre>
 ${copyPayControls(payTo, payUri)}
+${cardFallbackHtml()}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
 <pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${origin}/v1/sponsor</pre>
 </body></html>`;
@@ -1298,6 +1303,7 @@ export default {
 <button type="button" data-copy="${payUri}">Copy invoice</button>
 </p>
 <p>Explorer: <a href="https://mempool.space/address/${BTC_ADDRESS}">mempool.space</a>.</p>
+${cardFallbackHtml()}
 <script>
 document.querySelectorAll("[data-copy]").forEach(function(btn){
   btn.addEventListener("click", function(){
@@ -1324,6 +1330,7 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
 </ul>
 ${copyPayControls('3labsio@gmail.com', '42.00', 'Copy email', 'Copy $42')}
 <p><a href="mailto:3labsio@gmail.com">Open in mail</a></p>
+${cardFallbackHtml()}
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
@@ -1341,6 +1348,7 @@ ${walletPayControls(payTo)}
 <p>Pay to:</p>
 <pre style="white-space:pre-wrap;word-break:break-all">${payTo}</pre>
 ${copyPayControls(payTo, payUri)}
+${cardFallbackHtml()}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
