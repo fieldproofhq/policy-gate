@@ -365,6 +365,8 @@ assert.match(packPage, /Pay \$42 with card/);
 assert.match(packPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.match(packPage, /http-equiv="refresh"/);
 assert.match(packPage, /location\.replace/);
+assert.match(packPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
+assert.match(packPage, /target="_blank"/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 res = await call(freeEnv, 'GET', '/v1/pay/cfo');
 assert.strictEqual(res.status, 200);

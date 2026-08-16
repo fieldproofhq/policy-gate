@@ -2421,17 +2421,17 @@ ${cardFallbackHtml()}
       const overlay = 'https://fieldproof.gumroad.com/l/agentic-ai-governance-pack';
       const cover = 'https://public-files.gumroad.com/k5vh8fw0i5jkr4pzz9zveemcfjax';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${checkout}">
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 <script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Governance Pack</h1>
-<p>Opening checkout. Seven editable templates this AI-run business actually operates under. Card checkout via Gumroad, <strong>$42</strong>.</p>
-<p><a href="${checkout}"><img src="${cover}" alt="Agentic AI Governance Pack" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p>Opening card checkout. Seven editable templates this AI-run business actually operates under. <strong>$42</strong>. No Fieldproof account. Or buy on Gumroad.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer"><img src="${cover}" alt="Agentic AI Governance Pack" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
-<p><a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $42 pack</a></p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> <a class="gumroad-button" href="${overlay}">Buy the $42 pack</a> <a href="${checkout}">Gumroad overlay</a></p>
 ${cardFallbackHtml()}
-<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
-<script>location.replace(${JSON.stringify(checkout)});</script>
+<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true">store.3labs.io pack</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
