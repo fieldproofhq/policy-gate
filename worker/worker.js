@@ -10,6 +10,7 @@
  *   GET  /healthz     liveness
  *   GET  /v1/policies list built-in policy ids
  *   GET  /v1/received public Base USDC observation of PAY_TO (self-test excluded)
+ *   GET  /v1/pay      HTML index of every live $42 receive rail
  *   POST /v1/check    evaluate { request, policy | policy_id } -> verdict
  *
  * Modes (env vars, all optional — defaults to FREE):
@@ -364,9 +365,47 @@ function assessReceived(balanceUsd, observedAt = new Date().toISOString()) {
   };
 }
 
+function payIndexHtml(origin, btc = null) {
+  const sats = btc?.satsFor42 || null;
+  const price = btc?.priceUsd || null;
+  const btcLabel = sats
+    ? `${sats} sats (~$${GOAL_USD}${price ? ` at $${price}/BTC` : ''})`
+    : `~$42 of BTC`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Pay Fieldproof $42</h1>
+<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of $42 (or the $59 pack) meets the bar. Self-buys and the $0.005 self-test do not count.</p>
+<p>Pick the rail that matches how you pay:</p>
+<ul>
+<li><a href="${origin}/v1/pay/pack">$59 Governance Pack</a> — card via Gumroad; one sale meets $42</li>
+<li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
+<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — pay-what-you-want, suggested $42</li>
+<li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
+<li><a href="${origin}/v1/pay/btc">${btcLabel}</a> — BIP21 Bitcoin</li>
+<li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com memo Fieldproof</li>
+<li><a href="${origin}/v1/pay/x402">x402 agent checks</a> — $0.005 USDC each; 8400 = $42</li>
+</ul>
+<p>Live observer: <a href="${origin}/v1/received">GET /v1/received</a>. Scoreboard: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
+<script>
+fetch('${origin}/v1/received').then(function(r){return r.json()}).then(function(o){
+  if (!o || typeof o.remainingUsd !== 'number') return;
+  var el = document.getElementById('remaining');
+  if (el) el.textContent = o.goalMet ? ('goal met ($' + o.externalUsd + ' observed)') : ('$' + o.remainingUsd + ' remaining');
+}).catch(function(){});
+</script>
+</body></html>`;
+}
+
 function checkouts(c, origin, btc = null) {
   const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
   return [
+    {
+      id: 'pay-index',
+      url: `${origin}/v1/pay`,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: false,
+      note: 'one page listing every live rail; pick the $42 path that matches the payer',
+    },
     {
       id: 'governance-pack',
       url: `${origin}/v1/pay/pack`,
@@ -374,6 +413,14 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 59,
       meets_first_42: true,
       note: 'HTML pay landing then Gumroad $59 buy overlay; one sale meets the $42 bar',
+    },
+    {
+      id: 'cmo-kit',
+      url: `${origin}/v1/pay/cmo`,
+      asset: 'USD',
+      amount_usd: 39,
+      meets_first_42: false,
+      note: 'live Fractional CMO Launch Kit; $39 counts toward $42 but does not meet it alone',
     },
     {
       id: 'tip-jar',
@@ -687,10 +734,12 @@ export default {
             policies: 'GET /v1/policies',
             example: 'GET /v1/example  (free — worked verdicts from the live engine)',
             received: 'GET /v1/received  (free — public USDC+BTC observation; self-test excluded)',
+            pay: 'GET /v1/pay  (free — HTML index of every live $42 rail)',
             pay_usdc: 'GET /v1/pay/usdc  (free — one-tap 42 USDC on Base)',
             pay_zelle: 'GET /v1/pay/zelle  (free — $42 Zelle instructions)',
             pay_btc: 'GET /v1/pay/btc  (free — BIP21 BTC invoice for ~$42)',
             pay_x402: 'GET /v1/pay/x402  (free — agent x402 quote and curl recipe)',
+            pay_cmo: 'GET /v1/pay/cmo  (free — $39 Fractional CMO kit checkout)',
             health: 'GET /healthz',
           },
           evaluate_before_paying: 'GET /v1/example and GET /v1/policies are free and complete. Nothing about the verdict logic is hidden behind the paywall.',
@@ -706,6 +755,12 @@ export default {
         {},
         c.free
       );
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/pay' || url.pathname === '/v1/pay/')) {
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      return new Response(payIndexHtml(url.origin, btc), { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/x402') {
@@ -732,6 +787,17 @@ export default {
 <p><a href="${checkout}">Open $59 checkout</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
 <p>After paying, sales show on the Gumroad dashboard and <a href="/v1/received">GET /v1/received</a> stays the on-chain observer. Self-buys do not count.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/pay/cmo') {
+      const checkout = 'https://store.3labs.io/l/fractional-cmo-launch-kit?wanted=true';
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $39 CMO Launch Kit — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Buy the $39 Fractional CMO Launch Kit</h1>
+<p>This live Gumroad product is <strong>$39</strong>. That counts toward Fieldproof's first-$42 external-income bar but <strong>does not meet $42 alone</strong>.</p>
+<p><a href="${checkout}">Open $39 checkout</a></p>
+<p>After paying, sales show on the Gumroad dashboard. Self-buys do not count.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
