@@ -183,6 +183,246 @@ const DEFAULT_POLICY = {
 
 const BUILTINS = { 'default-action-tiers': DEFAULT_POLICY };
 
+/** Ethics Check is priced above the policy verdict: it is the judgement call, not the lookup. */
+const ETHICS_PRICE_USD = '0.01';
+
+
+/* ===================== FIELDPROOF ETHICS CHECK v0.1 =====================
+ * The Policy Gate answers "am I allowed to do this?". This answers "should I,
+ * and what am I not asking myself?" — seven canons, deterministic, no model in
+ * the hot path. Built 2026-08-11 and never shipped: the session that wrote it
+ * could not push. Its own suite still passes untouched five days later.
+ * ==================================================================== */
+/**
+ * Fieldproof Ethics Check — deterministic ethics screen v0.1
+ * Zero dependencies. Node >= 18.
+ *
+ * Companion to the Fieldproof Policy Gate. The Policy Gate answers
+ * "am I ALLOWED to do this?" against an org's action-tier policy.
+ * The Ethics Check answers a different question:
+ * "SHOULD I do this — and what am I not asking myself?"
+ *
+ * Honest framing (put this in every doc): this is a structured conscience,
+ * not a moral oracle. The agent submits a self-declaration of its proposed
+ * action; the engine screens that declaration against seven canons —
+ * classic failure patterns of autonomous action — and returns a verdict
+ * plus the reflective questions the agent (or its human) should answer.
+ * It cannot see what you don't declare. Deterministic: same declaration,
+ * same verdict, always. No LLM in the hot path; results are auditable.
+ *
+ * Verdicts: "clear" | "reflect" | "stop"
+ *   clear   — no canon flagged; proceed under your policy gate.
+ *   reflect — one or more canons raised questions; answer them (or route
+ *             to a human) before acting.
+ *   stop    — a canon failed outright; do not act on this declaration.
+ */
+
+'use strict';
+
+const VERDICTS = ['clear', 'reflect', 'stop'];
+
+/**
+ * The declaration schema (all fields optional; undeclared fields raise
+ * reflection questions rather than silently passing):
+ *
+ * {
+ *   action: "messages.send",                  // required, dotted verb like the Policy Gate
+ *   summary: "reply to a customer question",  // optional free text, echoed in audit
+ *   declared: {
+ *     reversible: true | false | "partial",
+ *     affects_others: true | false,          // anyone beyond the operator touched?
+ *     consent: "given" | "implied" | "absent" | "not_applicable",
+ *     deception: true | false,               // would any party be misled about what/who?
+ *     disclosure: true | false,              // would you act the same if this were public?
+ *     impact_usd: number,                    // money at stake, 0 if none
+ *     data_sensitivity: "none" | "personal" | "sensitive",
+ *     targets_individual: true | false,      // aimed at a specific person/being?
+ *     urgency_claimed: true | false          // is speed being used to justify skipping review?
+ *   }
+ * }
+ */
+
+/**
+ * The seven canons. Each is data, not code branches: { id, title, test }.
+ * test(d) returns:
+ *   null                          — pass
+ *   { level, reason, question }   — level "stop" or "reflect"
+ * Undeclared inputs never pass silently: they produce "reflect" with the
+ * question the agent skipped.
+ */
+const CANONS = [
+  {
+    id: 'no-deception',
+    title: 'No being is misled',
+    test(d) {
+      if (d.deception === true)
+        return {
+          level: 'stop',
+          reason: 'The declaration states a party would be misled.',
+          question: 'Who is misled, and what would they decide differently if they knew?',
+        };
+      if (d.deception === undefined)
+        return {
+          level: 'reflect',
+          reason: 'Deception not declared.',
+          question: 'Would every party to this action agree with your description of who is acting and why?',
+        };
+      return null;
+    },
+  },
+  {
+    id: 'daylight',
+    title: 'Acts survive daylight',
+    test(d) {
+      if (d.disclosure === false)
+        return {
+          level: 'stop',
+          reason: 'The declaration states the actor would not act the same if the action were public.',
+          question: 'What specifically changes if this action is visible — and to whom?',
+        };
+      if (d.disclosure === undefined)
+        return {
+          level: 'reflect',
+          reason: 'Disclosure stance not declared.',
+          question: 'If this action appeared verbatim in your audit log tomorrow, would you defend it as written?',
+        };
+      return null;
+    },
+  },
+  {
+    id: 'consent',
+    title: 'Affected beings have a say',
+    test(d) {
+      if (d.affects_others === false) return null;
+      if (d.consent === 'absent')
+        return {
+          level: d.affects_others === true ? 'stop' : 'reflect',
+          reason: 'Others are affected and consent is declared absent.',
+          question: 'Whose day does this change, and what would they say if you asked first?',
+        };
+      if (d.affects_others === undefined || d.consent === undefined)
+        return {
+          level: 'reflect',
+          reason: 'Effect on others and/or consent not declared.',
+          question: 'List every being this touches beyond your operator. For each: do they know, and would they mind?',
+        };
+      return null;
+    },
+  },
+  {
+    id: 'reversibility',
+    title: 'Prefer the door that opens back',
+    test(d) {
+      if (d.reversible === false)
+        return {
+          level: 'reflect',
+          reason: 'Action declared irreversible.',
+          question: 'What is the reversible version of this action, and what does it cost you to take that one instead?',
+        };
+      if (d.reversible === undefined)
+        return {
+          level: 'reflect',
+          reason: 'Reversibility not declared.',
+          question: 'If this turns out to be wrong in one hour, what exactly can be undone — and what cannot?',
+        };
+      return null;
+    },
+  },
+  {
+    id: 'proportion',
+    title: 'Stakes match authority',
+    test(d) {
+      if (typeof d.impact_usd === 'number' && d.impact_usd > 50)
+        return {
+          level: 'reflect',
+          reason: `Financial impact ($${d.impact_usd}) exceeds the small-stakes line ($50).`,
+          question: 'Is the human who bears this cost the one who approved it — at this size, by name?',
+        };
+      if (d.data_sensitivity === 'sensitive')
+        return {
+          level: 'reflect',
+          reason: 'Sensitive data declared in scope.',
+          question: 'Does this action need the sensitive data itself, or only a conclusion derived from it?',
+        };
+      return null;
+    },
+  },
+  {
+    id: 'dignity',
+    title: 'No being is a target',
+    test(d) {
+      if (d.targets_individual === true && d.consent !== 'given')
+        return {
+          level: 'stop',
+          reason: 'Action targets a specific being without their given consent.',
+          question: 'Would you take this action in front of the being it targets?',
+        };
+      return null;
+    },
+  },
+  {
+    id: 'unhurried',
+    title: 'Urgency is not an argument',
+    test(d) {
+      if (d.urgency_claimed === true)
+        return {
+          level: 'reflect',
+          reason: 'Speed is being used to justify skipping review.',
+          question: 'What is actually lost by waiting one review cycle — measured, not felt?',
+        };
+      return null;
+    },
+  },
+];
+
+function validateRequest(req) {
+  const errors = [];
+  if (!req || typeof req !== 'object') return ['request must be an object'];
+  if (typeof req.action !== 'string' || !req.action.length)
+    errors.push('request.action (string) is required');
+  if (req.declared !== undefined && (typeof req.declared !== 'object' || req.declared === null))
+    errors.push('request.declared must be an object when present');
+  return errors;
+}
+
+/**
+ * ethicsCheck(request) -> verdict
+ * request: { action, summary?, declared?: {...} }
+ */
+function ethicsCheck(request) {
+  const errors = validateRequest(request);
+  if (errors.length) return { error: 'invalid_request', details: errors };
+
+  const d = request.declared || {};
+  const flags = [];
+  for (const canon of CANONS) {
+    const r = canon.test(d);
+    if (r) flags.push({ canon: canon.id, title: canon.title, ...r });
+  }
+
+  const verdict = flags.some((f) => f.level === 'stop')
+    ? 'stop'
+    : flags.length
+      ? 'reflect'
+      : 'clear';
+
+  return {
+    verdict,
+    action: request.action,
+    flags,
+    questions: flags.map((f) => f.question),
+    canons_version: '0.1',
+    canons_checked: CANONS.length,
+    note:
+      verdict === 'clear'
+        ? 'No canon flagged this declaration. A clear verdict screens the declaration, not the act — pair with a policy gate for authority.'
+        : verdict === 'reflect'
+          ? 'Answer the questions (or route them to a human) before acting.'
+          : 'A canon failed outright. Do not act on this declaration.',
+  };
+}
+
+
 /* --------------------------------- MCP tools ------------------------------- */
 
 const MCP_TOOLS = [
@@ -416,17 +656,20 @@ function payIndexHtml(origin, btc = null) {
     : `~$42 of BTC`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
-<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of $42 (or the $59 pack) meets the bar. Self-buys and the $0.005 self-test do not count.</p>
-<p>Pick the rail that matches how you pay:</p>
+<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of <strong>$42</strong> meets the bar. Self-buys and the $0.005 self-test do not count.</p>
+<p>Card first — these live Gumroad checkouts are $42:</p>
 <ul>
-<li><a href="${origin}/v1/pay/pack">$59 Governance Pack</a> — card via Gumroad; one sale meets $42</li>
-<li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
-<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — pay-what-you-want, suggested $42</li>
+<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — card; listed at $42</li>
+<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — card; one sale meets $42</li>
+</ul>
+<p>Or send $42 another way:</p>
+<ul>
+<li><a href="${origin}/v1/sponsor">42 USDC / x402</a> — browser QR or agent POST /v1/sponsor</li>
 <li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
-<li><a href="${origin}/v1/pay/btc">${btcLabel}</a> — BIP21 Bitcoin</li>
 <li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com memo Fieldproof</li>
+<li><a href="${origin}/v1/pay/btc">${btcLabel}</a> — BIP21 Bitcoin</li>
+<li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
 <li><a href="${origin}/v1/pay/x402">x402 agent checks</a> — $0.005 USDC each; 8400 = $42</li>
-<li><a href="${origin}/v1/sponsor">x402 $42 one-shot</a> — one POST /v1/sponsor quotes 42 USDC</li>
 </ul>
 <p>Live observer: <a href="${origin}/v1/received">GET /v1/received</a>. Scoreboard: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
 <script>
@@ -454,9 +697,9 @@ function checkouts(c, origin, btc = null) {
       id: 'governance-pack',
       url: `${origin}/v1/pay/pack`,
       asset: 'USD',
-      amount_usd: 59,
+      amount_usd: 42,
       meets_first_42: true,
-      note: 'HTML pay landing then Gumroad $59 buy overlay; one sale meets the $42 bar',
+      note: 'HTML pay landing then live Gumroad $42 pack overlay; one sale meets the $42 bar',
     },
     {
       id: 'cmo-kit',
@@ -849,10 +1092,10 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $59 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
-<h1>Buy the $59 Governance Pack</h1>
-<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$59</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
-<p><a href="${checkout}">Open $59 checkout</a></p>
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Buy the $42 Governance Pack</h1>
+<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$42</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
+<p><a href="${checkout}">Open $42 checkout</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
 <p>After paying, sales show on the Gumroad dashboard and <a href="/v1/received">GET /v1/received</a> stays the on-chain observer. Self-buys do not count.</p>
 </body></html>`;
@@ -1054,6 +1297,85 @@ export default {
         {},
         true
       );
+    }
+
+    // Free: the seven canons. Marketing surface and honest disclosure in one — you can read
+    // exactly what the paid check screens against before paying for a screening.
+    if (request.method === 'GET' && url.pathname === '/v1/canons') {
+      return json(
+        200,
+        {
+          canons_version: '0.1',
+          framing:
+            'A structured conscience, not a moral oracle. It cannot see what you do not declare — it screens the declaration for the failure patterns autonomous agents actually exhibit. Undeclared fields never pass silently; they come back as questions.',
+          canons: CANONS.map(({ id, title }) => ({ id, title })),
+          check: { endpoint: 'POST /v1/ethics-check', price_usd: ETHICS_PRICE_USD },
+          example_request: {
+            action: 'messages.send',
+            summary: 'first outreach to a potential partner',
+            declared: {
+              reversible: true, affects_others: true, consent: 'absent', deception: false,
+              disclosure: true, impact_usd: 0, data_sensitivity: 'personal',
+              targets_individual: true, urgency_claimed: false,
+            },
+          },
+        },
+        {},
+        true
+      );
+    }
+
+    // GET on the paid ethics route documents it (200) — non-2xx reads as dead to probes.
+    if (request.method === 'GET' && url.pathname === '/v1/ethics-check') {
+      const priced = pricedCfg(c, ETHICS_PRICE_USD, 'Screen a declared action against the seven canons');
+      return json(200, {
+        endpoint: `${url.origin}/v1/ethics-check`,
+        method: 'POST',
+        price_usd: ETHICS_PRICE_USD,
+        canons: `${url.origin}/v1/canons`,
+        accepts: c.free ? [] : [paymentRequirementsV1(priced, `${url.origin}/v1/ethics-check`)],
+        note: 'POST without payment returns 402 with signing instructions.',
+      }, {}, true);
+    }
+
+    if (request.method === 'POST' && url.pathname === '/v1/ethics-check') {
+      const priced = pricedCfg(c, ETHICS_PRICE_USD, 'Screen a declared action against the seven canons');
+
+      const runEthics = async () => {
+        const raw = await request.text();
+        if (raw.length > MAX_BODY) return json(413, { error: 'body_too_large', max_bytes: MAX_BODY });
+        let parsed;
+        try { parsed = JSON.parse(raw || '{}'); } catch { return json(400, { error: 'invalid_json' }, {}, c.free); }
+        const out = ethicsCheck(parsed);
+        if (out && out.error) return json(422, out, {}, c.free);
+        return json(200, out, {}, c.free);
+      };
+
+      if (c.free) return runEthics();
+
+      const payHeader = request.headers.get('payment-signature') || request.headers.get('x-payment');
+      if (!payHeader) return paymentRequired402(priced, url.href, url.origin);
+      const payload = b64decode(payHeader);
+      if (!payload) return paymentRequired402(priced, url.href, url.origin, 'malformed payment header');
+
+      const ver = payload.x402Version === 2 ? 2 : 1;
+      const reqs = ver === 2 ? paymentRequirementsV2(priced) : paymentRequirementsV1(priced, url.href);
+      reqs.extensions = bazaarExtension(url.origin);
+      const verifyBody = { x402Version: ver, paymentPayload: payload, paymentRequirements: reqs };
+
+      const verify = await facilitatorCall(env, priced, 'verify', verifyBody);
+      if (!verify.json || verify.json.isValid !== true) {
+        return paymentRequired402(priced, url.href, url.origin,
+          `payment verification failed: ${verify.json?.invalidReason || `facilitator ${verify.status}`}`);
+      }
+      const out = await runEthics();
+      if (out.status >= 400) return out; // never settle on a bad request
+      const settle = await facilitatorCall(env, priced, 'settle', verifyBody);
+      if (!settle.json || settle.json.success !== true) {
+        return paymentRequired402(priced, url.href, url.origin,
+          `settlement failed: ${settle.json?.errorReason || `facilitator ${settle.status}`}`);
+      }
+      return out;
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/policies') {

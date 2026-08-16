@@ -59,14 +59,14 @@ let info = await res.json();
 assert.strictEqual(info.pricing.mode, 'free');
 assert.ok(Array.isArray(info.checkouts));
 const pack = info.checkouts.find((o) => o.id === 'governance-pack');
-assert.equal(pack.amount_usd, 59);
+assert.equal(pack.amount_usd, 42);
 assert.equal(pack.meets_first_42, true);
 assert.match(pack.url, /\/v1\/pay\/pack/);
 res = await call(freeEnv, 'GET', '/v1/pay/pack');
 assert.strictEqual(res.status, 200);
 assert.match(res.headers.get('content-type'), /text\/html/);
 const packPage = await res.text();
-assert.match(packPage, /\$59/);
+assert.match(packPage, /\$42/);
 assert.match(packPage, /agentic-ai-governance-pack\?wanted=true/);
 res = await call(freeEnv, 'GET', '/v1/pay/cmo');
 assert.strictEqual(res.status, 200);
@@ -398,6 +398,44 @@ m = await mcp(paidEnv, 'tools/call', { name: 'no_such_tool' });
 assert.strictEqual(m.error.code, -32602, 'unknown tool -> JSON-RPC error, not a crash');
 m = await mcp(paidEnv, 'bogus/method');
 assert.strictEqual(m.error.code, -32601, 'unknown method -> method not found');
+
+/* 4e — Ethics Check. Built 2026-08-11, shipped 2026-08-16. The Policy Gate answers
+   "am I allowed"; this answers "should I". Free canons, paid screening. */
+res = await call(paidEnv, 'GET', '/v1/canons');
+assert.strictEqual(res.status, 200, 'canons are free — you can read what you would be buying');
+const canons = await res.json();
+assert.strictEqual(canons.canons.length, 7, 'seven canons');
+assert.ok(canons.framing.includes('cannot see what you do not declare'),
+  'the honest limitation must ship with the product, not just the marketing');
+
+res = await call(paidEnv, 'GET', '/v1/ethics-check');
+assert.strictEqual(res.status, 200, 'GET documents the paid route; non-2xx reads as dead to probes');
+
+res = await call(paidEnv, 'POST', '/v1/ethics-check', { action: 'x.read' });
+assert.strictEqual(res.status, 402, 'the screening itself is paid');
+const ethQuote = await res.json();
+assert.strictEqual(ethQuote.accepts[0].maxAmountRequired, '10000', '$0.01 = 10000 atomic USDC');
+
+/* free mode answers, and the engine actually discriminates */
+res = await call(freeEnv, 'POST', '/v1/ethics-check', {
+  action: 'storage.delete',
+  summary: 'wipe production',
+  declared: { reversible: false, affects_others: true, consent: 'absent', deception: false,
+    disclosure: true, impact_usd: 5000, data_sensitivity: 'personal',
+    targets_individual: false, urgency_claimed: true },
+});
+const harsh = await res.json();
+assert.strictEqual(harsh.verdict, 'stop', 'an irreversible unconsented $5000 wipe must not come back clear');
+assert.ok(harsh.flags.length >= 3 && harsh.questions.length >= 1, 'flags and reflective questions returned');
+
+res = await call(freeEnv, 'POST', '/v1/ethics-check', {
+  action: 'docs.read',
+  summary: 'read public documentation',
+  declared: { reversible: true, affects_others: false, consent: 'not_required', deception: false,
+    disclosure: true, impact_usd: 0, data_sensitivity: 'public',
+    targets_individual: false, urgency_claimed: false },
+});
+assert.strictEqual((await res.json()).verdict, 'clear', 'a harmless read must come back clear, or the engine is just a stamp');
 
 /* 5 — CORS preflight */
 res = await worker.fetch(new Request(base + '/v1/check', { method: 'OPTIONS' }), freeEnv);
