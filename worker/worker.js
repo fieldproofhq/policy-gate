@@ -3651,15 +3651,13 @@ ${walletPayControls(payTo, payUri)}
       if (wantsHtml(request)) {
         const ids = Object.keys(BUILTINS).map((id) => `<li><code>${id}</code></li>`).join('');
         const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof policies</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay $42</h1>
-<p>Opening checkout. Policies are public. One $42 card payment meets the first-income bar.</p>
+<h1>Policies are public</h1>
+<p>This page stays here so you can read the ruleset, then pick a rail. Card checkout delivers the Ethics Check and C-suite Word ZIPs, not the Governance Pack.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <ul>${ids}</ul>
-<p>JSON: <a href="/v1/policies">GET /v1/policies</a> without HTML Accept. Worked verdicts: <a href="/v1/example">GET /v1/example</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>JSON: <a href="/v1/policies">GET /v1/policies</a> without HTML Accept. Worked verdicts: <a href="/v1/example">GET /v1/example</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
         return new Response(html, {
           status: 200,
@@ -3701,15 +3699,13 @@ ${walletPayControls(payTo, payUri)}
           })
           .join('');
         const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof examples</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay $42</h1>
-<p>Opening checkout. Worked verdicts below are live from the same engine as POST /v1/check. One $42 card payment meets the first-income bar.</p>
+<h1>Worked verdicts</h1>
+<p>This page stays here so you can judge the engine, then pick a rail. Verdicts below are live from the same engine as POST /v1/check. Card checkout delivers the Ethics Check and C-suite Word ZIPs, not the Governance Pack.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <ul>${rows}</ul>
-<p>JSON: <a href="/v1/example">GET /v1/example</a> without HTML Accept.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>JSON: <a href="/v1/example">GET /v1/example</a> without HTML Accept. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
         return new Response(html, {
           status: 200,

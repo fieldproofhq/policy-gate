@@ -1423,9 +1423,11 @@ assert.match(res.headers.get('content-type'), /text\/html/);
 const policiesPage = await res.text();
 assert.match(policiesPage, /Pay \$42 with card/);
 assert.match(policiesPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
-assert.match(policiesPage, /http-equiv="refresh"/);
-assert.match(policiesPage, /location\.replace/);
+assert.doesNotMatch(policiesPage, /http-equiv="refresh"/);
+assert.doesNotMatch(policiesPage, /location\.replace/);
 assert.match(policiesPage, /<ul>/);
+assert.match(policiesPage, /\/v1\/pay\/scan/);
+assert.match(policiesPage, /agentic-ai-governance-pack\?wanted=true/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 /* malformed payment header -> 402 again, not 500 */
@@ -1454,9 +1456,11 @@ assert.match(res.headers.get('content-type'), /text\/html/);
 const examplePage = await res.text();
 assert.match(examplePage, /Pay \$42 with card/);
 assert.match(examplePage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
-assert.match(examplePage, /http-equiv="refresh"/);
-assert.match(examplePage, /location\.replace/);
+assert.doesNotMatch(examplePage, /http-equiv="refresh"/);
+assert.doesNotMatch(examplePage, /location\.replace/);
 assert.match(examplePage, /<strong>allow<\/strong>/);
+assert.match(examplePage, /\/v1\/pay\/scan/);
+assert.match(examplePage, /agentic-ai-governance-pack\?wanted=true/);
 assert.match(examplePage, /<strong>deny<\/strong>/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 /* and they must cover the full decision range, or they are advertising rather than showing */
