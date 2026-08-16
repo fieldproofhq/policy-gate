@@ -732,7 +732,7 @@ function walletPayControls(payTo, payUri) {
 }
 
 function cardFallbackHtml() {
-  return `<p>Prefer card? <a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.55rem .95rem;border-radius:999px;font-weight:600">Pay $42 with card</a> — also Cash App, Link, or US bank debit.</p>`;
+  return `<p>Prefer card? <a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.55rem .95rem;border-radius:999px;font-weight:600">Pay $42 with card</a> — also Cash App, Link, or US bank debit.</p>`;
 }
 
 function sponsorHtml(origin, payTo) {
@@ -2574,17 +2574,17 @@ ${cardFallbackHtml()}
       const overlay = 'https://fieldproof.gumroad.com/l/tip-jar';
       const cover = 'https://public-files.gumroad.com/5u12tofcw2kg35lga2na9ri6cba3';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support Fieldproof $42 — tip jar</title>
-<meta http-equiv="refresh" content="0;url=${checkout}">
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 <script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Support Fieldproof — $42 tip jar</h1>
-<p>Opening checkout. Listed at <strong>$42</strong>. Pay more if you want.</p>
-<p><a href="${checkout}"><img src="${cover}" alt="Fieldproof tip jar" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p>Opening card checkout. Listed at <strong>$42</strong>. No Fieldproof account. Or stay and pay on Gumroad.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer"><img src="${cover}" alt="Fieldproof tip jar" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
 <p style="font-size:1.25rem;font-weight:700">$42+</p>
-<p><a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Support $42</a></p>
+<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> <a class="gumroad-button" href="${overlay}">Support $42 on Gumroad</a> <a href="${checkout}">${checkout.includes('wanted=true') ? 'Gumroad overlay' : 'tip jar'}</a></p>
 ${cardFallbackHtml()}
-<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
-<script>location.replace(${JSON.stringify(checkout)});</script>
+<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io/l/tip-jar?wanted=true">store.3labs.io/l/tip-jar</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }

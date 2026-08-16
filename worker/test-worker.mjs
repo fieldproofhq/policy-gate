@@ -547,6 +547,8 @@ assert.match(tipPage, /Pay \$42 with card/);
 assert.match(tipPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.match(tipPage, /http-equiv="refresh"/);
 assert.match(tipPage, /location\.replace/);
+assert.match(tipPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
+assert.match(tipPage, /target="_blank"/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 assert.doesNotMatch(tipPage, /Self-buys|not income/i);
 const x402 = listed.checkouts.find((o) => o.id === 'x402-check');
