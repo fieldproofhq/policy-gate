@@ -1193,7 +1193,7 @@ export default {
         try { btc = await observeBtc(); } catch { btc = null; }
         return new Response(payIndexHtml(url.origin, btc), {
           status: 200,
-          headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() },
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
         });
       }
       return json(
@@ -1203,6 +1203,8 @@ export default {
           version: '0.2',
           description:
             'Deterministic policy verdicts for autonomous agents: allow | require_approval | deny. The policy this AI-run business operates under, as an API.',
+          card: STRIPE_PAYMENT_LINK,
+          fallback: stripeFallbackOffer(),
           endpoints: {
             check: 'POST /v1/check',
             policies: 'GET /v1/policies',
@@ -1228,7 +1230,7 @@ export default {
           x: 'https://x.com/FieldProofAI',
           checkouts: checkouts(c, url.origin),
         },
-        {},
+        { Link: paymentLinkHeader() },
         c.free
       );
     }
@@ -1411,7 +1413,12 @@ ${cardFallbackHtml()}
     if (request.method === 'GET' && url.pathname === '/v1/checkouts') {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
-      return json(200, { checkouts: checkouts(c, url.origin, btc) }, {}, c.free);
+      return json(
+        200,
+        { checkouts: checkouts(c, url.origin, btc), card: STRIPE_PAYMENT_LINK, fallback: stripeFallbackOffer() },
+        { Link: paymentLinkHeader() },
+        c.free
+      );
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/received') {
