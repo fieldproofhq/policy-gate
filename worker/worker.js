@@ -1448,6 +1448,28 @@ ${cardFallbackHtml()}
     // is invisible to anything that does not already know the exact POST route. Rejected
     // by agent-tools.cloud on 2026-08-16 for precisely this: "no /.well-known/x402 and no
     // 402 challenge from endpoint" — their prober GETs, and GET used to 404.
+    if (request.method === 'GET' && (url.pathname === '/.well-known/pay' || url.pathname === '/.well-known/pay.json')) {
+      return json(
+        200,
+        {
+          name: 'Fieldproof',
+          price_usd: 42,
+          currency: 'USD',
+          url: STRIPE_PAYMENT_LINK,
+          short_url: `${url.origin}/pay`,
+          methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
+          also: {
+            usdc: `${url.origin}/v1/pay/usdc`,
+            btc: `${url.origin}/v1/pay/btc`,
+            zelle: `${url.origin}/v1/pay/zelle`,
+            store: 'https://store.3labs.io',
+          },
+        },
+        {},
+        true
+      );
+    }
+
     if (request.method === 'GET' && url.pathname === '/.well-known/x402') {
       return json(
         200,

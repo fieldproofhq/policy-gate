@@ -83,6 +83,13 @@ assert.equal(res.headers.get('location'), 'https://buy.stripe.com/eVq4gA91U3Rr1Y
 res = await call(freeEnv, 'GET', '/llms.txt');
 assert.strictEqual(res.status, 200);
 assert.match(await res.text(), /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+res = await call(freeEnv, 'GET', '/.well-known/pay');
+assert.strictEqual(res.status, 200);
+const payDoc = await res.json();
+assert.equal(payDoc.price_usd, 42);
+assert.equal(payDoc.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.ok(payDoc.methods.includes('affirm'));
+assert.match(payDoc.short_url, /\/pay$/);
 assert.match(cardPage, /create-qr-code/);
 assert.match(cardPage, /buy\.stripe\.com/);
 assert.doesNotMatch(cardPage, /Mark gate/i);
