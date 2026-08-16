@@ -817,6 +817,29 @@ function npmFunding() {
   ];
 }
 
+function humansTxt(origin) {
+  return [
+    '/* TEAM */',
+    'Operator: Fieldproof',
+    'Contact: 3labsio@gmail.com',
+    'Site: https://fieldproofhq.github.io/',
+    'Pay: ' + STRIPE_PAYMENT_LINK,
+    '',
+    '/* SITE */',
+    'Invoice: ' + origin + '/v1/invoice',
+    'Card: ' + origin + '/v1/pay/card.uri',
+    'USDC: ' + origin + '/v1/pay/usdc.uri',
+    'BTC: ' + origin + '/v1/pay/btc.uri',
+    'Zelle: ' + origin + '/v1/pay/zelle.uri',
+    'Pack: ' + origin + '/v1/pay/pack.uri',
+    'Tip: ' + origin + '/v1/pay/tip-jar.uri',
+    'Skill: ' + origin + '/skills/pay/SKILL.md',
+    'MCP: ' + origin + '/mcp',
+    'Standards: https://humanstxt.org/',
+    '',
+  ].join('\n');
+}
+
 function securityTxt(origin) {
   return [
     'Contact: mailto:3labsio@gmail.com',
@@ -847,6 +870,13 @@ function openApiSpec(origin) {
     servers: [{ url: origin }],
     externalDocs: { description: 'Pay $42 with card', url: STRIPE_PAYMENT_LINK },
     paths: {
+      '/humans.txt': {
+        get: {
+          operationId: 'humansTxt',
+          summary: 'humans.txt listing the operator and every live $42 rail',
+          responses: { 200: { description: 'text/plain humans.txt with live $42 rails' } },
+        },
+      },
       '/.well-known/security.txt': {
         get: {
           operationId: 'securityTxt',
@@ -1775,6 +1805,8 @@ export default {
         `${url.origin}/.well-known/ai-plugin.json`,
         `${url.origin}/.well-known/mcp.json`,
         `${url.origin}/.well-known/security.txt`,
+        `${url.origin}/humans.txt`,
+        `${url.origin}/.well-known/humans.txt`,
         `${url.origin}/.well-known/llms.txt`,
         `${url.origin}/llms-full.txt`,
         `${url.origin}/package.json`,
@@ -1828,6 +1860,7 @@ export default {
         `- Agent skill: ${url.origin}/skills/pay/SKILL.md`,
         `- npm funding (package.json): ${url.origin}/package.json`,
         `- security.txt: ${url.origin}/.well-known/security.txt`,
+        `- humans.txt: ${url.origin}/humans.txt`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2216,6 +2249,20 @@ ${cardFallbackHtml()}
 
     if (
       request.method === 'GET' &&
+      (url.pathname === '/humans.txt' || url.pathname === '/.well-known/humans.txt')
+    ) {
+      return new Response(humansTxt(url.origin), {
+        status: 200,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (
+      request.method === 'GET' &&
       (url.pathname === '/.well-known/security.txt' || url.pathname === '/security.txt')
     ) {
       return new Response(securityTxt(url.origin), {
@@ -2296,6 +2343,7 @@ ${cardFallbackHtml()}
             pack_uri: `${url.origin}/v1/pay/pack.uri`,
             tip_uri: `${url.origin}/v1/pay/tip-jar.uri`,
             security: `${url.origin}/.well-known/security.txt`,
+            humans: `${url.origin}/humans.txt`,
           },
         },
         {},
