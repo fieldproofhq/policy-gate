@@ -144,6 +144,16 @@ assert.equal(plugin['x-payment'].url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z3
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 res = await call(freeEnv, 'GET', '/sitemap.xml');
 assert.match(await res.text(), /\/\.well-known\/ai-plugin\.json/);
+res = await call(freeEnv, 'GET', '/.well-known/mcp.json');
+assert.strictEqual(res.status, 200);
+const mcpDoc = await res.json();
+assert.equal(mcpDoc.transport, 'streamable-http');
+assert.match(mcpDoc.url, /\/mcp$/);
+assert.ok(mcpDoc.tools.includes('first_42_sponsor'));
+assert.equal(mcpDoc.payment.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.match(res.headers.get('link') || '', /rel="payment"/);
+res = await call(freeEnv, 'GET', '/sitemap.xml');
+assert.match(await res.text(), /\/\.well-known\/mcp\.json/);
 assert.match(cardPage, /create-qr-code/);
 assert.match(cardPage, /buy\.stripe\.com/);
 assert.doesNotMatch(cardPage, /Mark gate/i);

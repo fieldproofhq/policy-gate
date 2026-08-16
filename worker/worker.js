@@ -778,6 +778,20 @@ function aiPluginManifest(origin) {
   };
 }
 
+/** MCP clients fetch /.well-known/mcp.json to find a remote Streamable HTTP server. */
+function mcpDiscovery(origin) {
+  return {
+    version: '1.0',
+    name: 'fieldproof-policy-gate',
+    description: 'Deterministic policy verdicts plus a $42 checkout (card or 42 USDC).',
+    transport: 'streamable-http',
+    url: `${origin}/mcp`,
+    tools: ['policy_example', 'policy_rules', 'policy_check', 'first_42_sponsor'],
+    payment: stripeFallbackOffer(),
+    sponsor: `${origin}/v1/sponsor`,
+  };
+}
+
 /** A2A Agent Card. A2A clients GET /.well-known/agent-card.json (and legacy agent.json). */
 function agentCard(origin) {
   const fallback = stripeFallbackOffer();
@@ -1390,6 +1404,7 @@ export default {
         `${url.origin}/.well-known/agent-card.json`,
         `${url.origin}/openapi.json`,
         `${url.origin}/.well-known/ai-plugin.json`,
+        `${url.origin}/.well-known/mcp.json`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
@@ -1638,6 +1653,10 @@ ${cardFallbackHtml()}
 
     if (request.method === 'GET' && url.pathname === '/.well-known/ai-plugin.json') {
       return json(200, aiPluginManifest(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
+      return json(200, mcpDiscovery(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/mcp-registry-auth') {
