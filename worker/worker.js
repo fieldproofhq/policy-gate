@@ -1133,12 +1133,15 @@ export default {
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/tip-jar') {
-      const checkout = 'https://fieldproof.gumroad.com/l/tip-jar?wanted=true';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via tip jar — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
-<h1>Send $42 via the tip jar</h1>
-<p>The Fieldproof tip jar is listed at <strong>$42</strong>. Pay more if you want.</p>
-<p><a href="${checkout}">Open tip-jar checkout</a></p>
-<p>After paying, sales show on the Gumroad dashboard. A checkout overlay is not income.</p>
+      const checkout = 'https://store.3labs.io/l/tip-jar?wanted=true';
+      const cover = 'https://public-files.gumroad.com/5u12tofcw2kg35lga2na9ri6cba3';
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support Fieldproof $42 — tip jar</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Support Fieldproof — $42 tip jar</h1>
+<p>Listed at <strong>$42</strong>. Pay more if you want. Card checkout on the live store.</p>
+<p><a href="${checkout}"><img src="${cover}" alt="Fieldproof tip jar" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p style="font-size:1.25rem;font-weight:700">$42+</p>
+<p><a href="${checkout}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Support $42</a></p>
+<p>Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
