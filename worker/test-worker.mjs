@@ -1140,6 +1140,15 @@ assert.ok(canons.framing.includes('cannot see what you do not declare'),
 
 res = await call(paidEnv, 'GET', '/v1/ethics-check');
 assert.strictEqual(res.status, 200, 'GET documents the paid route; non-2xx reads as dead to probes');
+res = await call(paidEnv, 'GET', '/v1/ethics-check', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const ethicsPage = await res.text();
+assert.match(ethicsPage, /Pay \$42 with card/);
+assert.match(ethicsPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(ethicsPage, /http-equiv="refresh"/);
+assert.match(ethicsPage, /location\.replace/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 res = await call(paidEnv, 'POST', '/v1/ethics-check', { action: 'x.read' });
 assert.strictEqual(res.status, 402, 'the screening itself is paid');

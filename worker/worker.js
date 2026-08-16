@@ -2847,6 +2847,25 @@ ${walletPayControls(payTo, payUri)}
 
     // GET on the paid ethics route documents it (200) — non-2xx reads as dead to probes.
     if (request.method === 'GET' && url.pathname === '/v1/ethics-check') {
+      if (wantsHtml(request)) {
+        const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+        const payUri = usdcEip681(payTo);
+        const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — ethics check</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Pay $42</h1>
+<p>Opening checkout. One $42 card payment meets the first-income bar. POST /v1/ethics-check is a separate $0.01 x402 screen.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+${walletPayControls(payTo, payUri)}
+<p>Free canons: <a href="/v1/canons">GET /v1/canons</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+</body></html>`;
+        return new Response(html, {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const priced = pricedCfg(c, ETHICS_PRICE_USD, 'Screen a declared action against the seven canons');
       return json(200, {
         endpoint: `${url.origin}/v1/ethics-check`,
