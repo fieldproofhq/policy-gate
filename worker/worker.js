@@ -1035,6 +1035,14 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
+      if (wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() },
+        });
+      }
       return json(
         200,
         {
