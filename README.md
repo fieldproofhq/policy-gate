@@ -122,7 +122,7 @@ The engine is MIT and free forever. The pack is the part that took the writing.
 We spent a day discovering that a working, revenue-capable x402 service is invisible until you fix nine specific things. Every defect was live in this service. Every fix is in [**the playbook**](guides/x402-distribution-playbook.md) — free, no signup:
 
 - the Bazaar declaration that never reaches the facilitator, so a correct extension points at nobody
-- why directory health probes read your  as a dead service
+- why directory health probes read your `GET` as a dead service
 - the origin-vs-path registration trap, and the content negotiation that escapes it
 - the undocumented Ed25519 domain-auth flow for the official MCP registry
 - dynamic x402 pricing, and the measurement mistake that makes a working funnel look dead
