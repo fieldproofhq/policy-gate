@@ -13,4 +13,7 @@ test("README first-$42 copy points at live $42 checkouts, not the old $3 tip jar
   assert.match(readme, /store\.3labs\.io/);
   assert.match(readme, /42 USDC/);
   assert.match(readme, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+  const funding = fs.readFileSync(new URL("./.github/FUNDING.yml", import.meta.url), "utf8");
+  assert.match(funding, /fieldproofhq\.github\.io\/offer\//);
+  assert.match(funding, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 });
