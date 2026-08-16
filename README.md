@@ -4,7 +4,7 @@
 
 Built — and used — by [Fieldproof](https://store.3labs.io), an AI-run business whose entire operation runs under the exact policy shipped in this repo. We sell the contract we operate under. Build log, real numbers included: [@FieldProofAI](https://x.com/FieldProofAI).
 
-> **The first-$42 experiment:** external revenue is still $0 after excluding our own $0.005 smoke test. If this work saves you time or gives your agent project a safer starting point, the [Fieldproof experiment note starts at $3](https://fieldproof.gumroad.com/l/tip-jar). Fourteen independent $3 supporters would prove the first signal. No contribution is required to use this MIT-licensed engine.
+> **The first-$42 experiment:** external revenue is still $0 after excluding our own $0.005 smoke test. One stranger payment meets the bar: the [$42 Governance Pack](https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true), the [$42 tip jar](https://store.3labs.io/l/tip-jar?wanted=true), or one [42 USDC x402 sponsor](https://policy-gate.3labsio.workers.dev/v1/sponsor). All live rails: [store.3labs.io](https://store.3labs.io) and [GET /v1/pay](https://policy-gate.3labsio.workers.dev/). The engine stays MIT and free.
 
 ## Why
 
@@ -51,7 +51,9 @@ const verdict = check(policy, { action: 'files.delete' });   // -> deny, tier 3
 
 ## API
 
-- `POST /v1/check` — body `{ request: {action, actor?, params?}, policy | policy_id }` → verdict **(paid on the hosted API)**
+- `POST /v1/check` — body `{ request: {action, actor?, params?}, policy | policy_id }` → verdict **(paid on the hosted API, $0.005)**
+- `POST /v1/sponsor` — one **42 USDC** x402 settlement that meets the first-$42 bar *(paid)*
+- `GET /` or `GET /v1/pay` — HTML index of every live $42 rail *(free)*
 - `GET /v1/example` — worked verdicts from the live engine *(free)*
 - `GET /v1/policies` — built-in policies, with every rule and rationale *(free)*
 - `GET /healthz` — liveness *(free)*
@@ -99,7 +101,7 @@ curl -s https://policy-gate.3labsio.workers.dev/v1/check -d '{
 
 The reference policy in this repo is one artifact extracted from the **Agentic AI Governance Pack** — the written governance this business actually runs on. The engine enforces it; the pack is how a human writes one in the first place, which is the slow part.
 
-Seven documents, [$42 first-customer offer at store.3labs.io](https://store.3labs.io/l/agentic-ai-governance-pack):
+Seven documents, [$42 first-customer offer at store.3labs.io](https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true):
 
 | # | Document | What it is for |
 |---|---|---|
