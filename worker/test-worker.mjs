@@ -572,6 +572,7 @@ assert.match(x402Page, /eth_sendTransaction/);
 assert.match(x402Page, /btn\.click\(\)/);
 assert.match(x402Page, /location\.replace\(PAY_URI\)/);
 assert.match(x402Page, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
+assert.match(x402Page, /http-equiv="refresh"/);
 assert.match(x402Page, /uint256=42000000/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 const sponsorOffer = listed.checkouts.find((o) => o.id === 'x402-sponsor-42');
