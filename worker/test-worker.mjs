@@ -1035,6 +1035,16 @@ assert.strictEqual(getDocs.method, 'POST', 'docs name the paid method');
 assert.ok(getDocs.accepts?.[0]?.payTo === paidEnv.PAY_TO, 'docs still carry the payment requirements');
 assert.equal(getDocs.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
 assert.match(res.headers.get('link') || '', /rel="payment"/);
+res = await call(paidEnv, 'GET', '/v1/check', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const checkPage = await res.text();
+assert.match(checkPage, /Pay \$42 with card/);
+assert.match(checkPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(checkPage, /http-equiv="refresh"/);
+assert.match(checkPage, /location\.replace/);
+assert.match(checkPage, /POST \/v1\/check/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 /* 4d — MCP (Streamable HTTP). Discovery channel for agents that speak MCP rather than x402.
    The free tools must be genuinely useful and the paid one must NOT leak a verdict. */
