@@ -726,6 +726,9 @@ function walletPayControls(payTo, payUri) {
   } else if (PAY_URI && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
     say("Opening your wallet…");
     location.replace(PAY_URI);
+  } else {
+    say("No browser wallet. Opening card checkout…");
+    location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});
   }
 })();
 </script>`;
