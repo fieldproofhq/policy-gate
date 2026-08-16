@@ -258,6 +258,20 @@ function cfg(env) {
   return { payTo, free, network, priceUsd, amount, facilitator, hasCdp };
 }
 
+function pricedCfg(c, priceUsd, quoteDescription) {
+  const price = String(priceUsd);
+  const amount = String(Math.round(Number(price) * 1e6));
+  return { ...c, priceUsd: price, amount, quoteDescription };
+}
+
+function sponsorCfg(c) {
+  return pricedCfg(
+    c,
+    GOAL_USD,
+    'One 42 USDC payment on Base that meets Fieldproof first-$42 external-income bar. The $0.005 self-test is excluded. Self-pays do not count.'
+  );
+}
+
 /** v1 network names vs v2 CAIP-2 ids — the facilitator rejects mixed schemas. */
 const V1_NETWORK = { 'eip155:8453': 'base', 'eip155:84532': 'base-sepolia' };
 
@@ -272,9 +286,10 @@ function paymentRequirementsV1(c, url) {
     // The 402 is the only thing most callers will ever read. It should answer "why would
     // I pay this?" without a second request.
     description:
-      'Deterministic allow / require_approval / deny verdict for a proposed agent action. ' +
-      'Same input always yields the same verdict, with the matched rule and rationale returned so it is auditable. ' +
-      'Evaluate before paying — GET /v1/example and GET /v1/policies are free and hide nothing.',
+      c.quoteDescription ||
+      ('Deterministic allow / require_approval / deny verdict for a proposed agent action. ' +
+        'Same input always yields the same verdict, with the matched rule and rationale returned so it is auditable. ' +
+        'Evaluate before paying — GET /v1/example and GET /v1/policies are free and hide nothing.'),
     mimeType: 'application/json',
     payTo: c.payTo,
     maxTimeoutSeconds: 60,
@@ -373,16 +388,17 @@ function payIndexHtml(origin, btc = null) {
     : `~$42 of BTC`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
-<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of $42 (including the first-customer Governance Pack offer) meets the bar. Self-buys and the $0.005 self-test do not count.</p>
+<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of $42 (or the $59 pack) meets the bar. Self-buys and the $0.005 self-test do not count.</p>
 <p>Pick the rail that matches how you pay:</p>
 <ul>
-<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — card via Gumroad; one sale meets $42</li>
+<li><a href="${origin}/v1/pay/pack">$59 Governance Pack</a> — card via Gumroad; one sale meets $42</li>
 <li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — pay-what-you-want, suggested $42</li>
 <li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
 <li><a href="${origin}/v1/pay/btc">${btcLabel}</a> — BIP21 Bitcoin</li>
 <li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com memo Fieldproof</li>
 <li><a href="${origin}/v1/pay/x402">x402 agent checks</a> — $0.005 USDC each; 8400 = $42</li>
+<li><a href="${origin}/v1/sponsor">x402 $42 one-shot</a> — one POST /v1/sponsor quotes 42 USDC</li>
 </ul>
 <p>Live observer: <a href="${origin}/v1/received">GET /v1/received</a>. Scoreboard: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
 <script>
@@ -410,9 +426,9 @@ function checkouts(c, origin, btc = null) {
       id: 'governance-pack',
       url: `${origin}/v1/pay/pack`,
       asset: 'USD',
-      amount_usd: 42,
+      amount_usd: 59,
       meets_first_42: true,
-      note: 'HTML pay landing then Gumroad $42 buy overlay; one sale meets the $42 bar',
+      note: 'HTML pay landing then Gumroad $59 buy overlay; one sale meets the $42 bar',
     },
     {
       id: 'cmo-kit',
@@ -448,6 +464,16 @@ function checkouts(c, origin, btc = null) {
       checks_for_42: Number(c.priceUsd) > 0 ? Math.ceil(42 / Number(c.priceUsd)) : null,
       meets_first_42: false,
       note: 'agent x402 landing; unpaid POST /v1/check quotes the public receive wallet',
+    },
+    {
+      id: 'x402-sponsor-42',
+      url: `${origin}/v1/sponsor`,
+      asset: 'USDC',
+      amount_usd: 42,
+      pay_to: payTo,
+      network: c.network,
+      meets_first_42: true,
+      note: 'unpaid POST /v1/sponsor quotes 42 USDC on Base; one settlement meets the bar',
     },
     {
       id: 'usdc-direct',
@@ -739,6 +765,7 @@ export default {
             pay_zelle: 'GET /v1/pay/zelle  (free — $42 Zelle instructions)',
             pay_btc: 'GET /v1/pay/btc  (free — BIP21 BTC invoice for ~$42)',
             pay_x402: 'GET /v1/pay/x402  (free — agent x402 quote and curl recipe)',
+            sponsor: 'POST /v1/sponsor  (x402 — one 42 USDC settlement meets the first-$42 bar)',
             pay_cmo: 'GET /v1/pay/cmo  (free — $39 Fractional CMO kit checkout)',
             health: 'GET /healthz',
           },
@@ -781,10 +808,10 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
-<h1>Buy the $42 Governance Pack</h1>
-<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$42</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
-<p><a href="${checkout}">Open $42 checkout</a></p>
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $59 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Buy the $59 Governance Pack</h1>
+<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$59</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
+<p><a href="${checkout}">Open $59 checkout</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
 <p>After paying, sales show on the Gumroad dashboard and <a href="/v1/received">GET /v1/received</a> stays the on-chain observer. Self-buys do not count.</p>
 </body></html>`;
@@ -945,6 +972,14 @@ export default {
               free: c.free,
               evaluate_before_paying: [`${url.origin}/v1/example`, `${url.origin}/v1/policies`],
             },
+            {
+              url: `${url.origin}/v1/sponsor`,
+              method: 'POST',
+              mimeType: 'application/json',
+              description: 'One 42 USDC x402 settlement that meets Fieldproof first-$42 external-income bar. Self-test excluded.',
+              accepts: c.free ? [] : [paymentRequirementsV2(sponsorCfg(c))],
+              free: c.free,
+            },
           ],
           docs: 'https://github.com/fieldproofhq/policy-gate',
           contact: 'https://github.com/fieldproofhq/policy-gate/issues',
@@ -1056,6 +1091,52 @@ export default {
         {},
         c.free
       );
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/sponsor') {
+      const quote = sponsorCfg(c);
+      return json(
+        200,
+        {
+          endpoint: `${url.origin}/v1/sponsor`,
+          method: 'POST',
+          paid: !c.free,
+          price_usd: 42,
+          amount_atomic: quote.amount,
+          pay_to: c.payTo,
+          network: c.network,
+          accepts: c.free ? [] : [paymentRequirementsV1(quote, url.href)],
+          note: 'one x402 settlement of 42 USDC meets the bar; the $0.005 self-test is excluded; self-pays do not count',
+          observer: `${url.origin}/v1/received`,
+        },
+        {},
+        true
+      );
+    }
+
+    if (request.method === 'POST' && url.pathname === '/v1/sponsor') {
+      const quote = sponsorCfg(c);
+      if (c.free) {
+        return json(200, { ok: true, mode: 'free', goalUsd: GOAL_USD, note: 'free mode does not settle; not income' }, {}, true);
+      }
+      const payHeader = request.headers.get('payment-signature') || request.headers.get('x-payment');
+      if (!payHeader) return paymentRequired402(quote, url.href, url.origin);
+      const payload = b64decode(payHeader);
+      if (!payload) return paymentRequired402(quote, url.href, url.origin, 'malformed payment header');
+      const ver = payload.x402Version === 2 ? 2 : 1;
+      const reqs = ver === 2 ? paymentRequirementsV2(quote) : paymentRequirementsV1(quote, url.href);
+      reqs.extensions = bazaarExtension(url.origin);
+      const verifyBody = { x402Version: ver, paymentPayload: payload, paymentRequirements: reqs };
+      const verify = await facilitatorCall(env, quote, 'verify', verifyBody);
+      if (!verify.json || verify.json.isValid !== true) {
+        return paymentRequired402(quote, url.href, url.origin, `payment verification failed: ${verify.json?.invalidReason || `facilitator ${verify.status}`}`);
+      }
+      const settle = await facilitatorCall(env, quote, 'settle', verifyBody);
+      if (!settle.json || settle.json.success !== true) {
+        return paymentRequired402(quote, url.href, url.origin, `settlement failed: ${settle.json?.errorReason || `facilitator ${settle.status}`}`);
+      }
+      const receipt = b64encode(settle.json);
+      return json(200, { ok: true, goalUsd: GOAL_USD, note: '42 USDC settlement accepted; counted only if it is not a self-pay' }, { 'PAYMENT-RESPONSE': receipt, 'X-PAYMENT-RESPONSE': receipt });
     }
 
     if (request.method === 'POST' && url.pathname === '/v1/check') {
