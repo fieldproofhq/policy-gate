@@ -832,6 +832,13 @@ function openApiSpec(origin) {
           responses: { 200: { description: 'JSON invoice. Accept text/uri-list for Stripe + wallet URIs.' } },
         },
       },
+      '/v1/pay/card.uri': {
+        get: {
+          operationId: 'payCardUri',
+          summary: 'text/uri-list of the live $42 Stripe Payment Link. Agents open the first URI.',
+          responses: { 200: { description: 'text/uri-list; one https://buy.stripe.com/… URI' } },
+        },
+      },
       '/v1/pay/usdc.uri': {
         get: {
           operationId: 'payUsdcUri',
@@ -1072,6 +1079,15 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 42,
       meets_first_42: true,
       note: 'live Stripe Payment Link; card, Cash App, Link, or US bank debit; one $42 payment meets the bar',
+    },
+    {
+      id: 'card-uri',
+      url: `${origin}/v1/pay/card.uri`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_uri: STRIPE_PAYMENT_LINK,
+      meets_first_42: true,
+      note: 'text/uri-list of the live Stripe Payment Link; agents open the first URI',
     },
     {
       id: 'governance-pack',
@@ -1535,6 +1551,7 @@ export default {
         `${url.origin}/pay`,
         `${url.origin}/v1/pay`,
         `${url.origin}/v1/pay/card`,
+        `${url.origin}/v1/pay/card.uri`,
         `${url.origin}/v1/sponsor`,
         `${url.origin}/v1/offer`,
         `${url.origin}/v1/invoice`,
@@ -1589,6 +1606,7 @@ export default {
         '',
         '## Card / bank / wallets',
         `- Stripe Payment Link: ${STRIPE_PAYMENT_LINK}`,
+        `- Card URI (text/uri-list): ${url.origin}/v1/pay/card.uri`,
         '- Methods: card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm',
         `- Mission offer (auto-opens Stripe): https://fieldproofhq.github.io/offer/`,
         `- Worker short URL: ${url.origin}/pay`,
@@ -1642,7 +1660,28 @@ ${cardFallbackHtml()}
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/card.uri' || url.pathname === '/v1/pay/card.txt')) {
+      return uriListResponse(STRIPE_PAYMENT_LINK);
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/card') {
+      if (wantsUriList(request)) return uriListResponse(STRIPE_PAYMENT_LINK);
+      if (wantsJson(request)) {
+        return json(
+          200,
+          {
+            scheme: 'stripe',
+            asset: 'USD',
+            amountUsd: GOAL_USD,
+            uri: STRIPE_PAYMENT_LINK,
+            url: STRIPE_PAYMENT_LINK,
+            methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
+            card: STRIPE_PAYMENT_LINK,
+          },
+          { Link: paymentLinkHeader() },
+          true
+        );
+      }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 with card</h1>
@@ -1926,6 +1965,7 @@ ${cardFallbackHtml()}
           methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
           also: {
             invoice: `${url.origin}/v1/invoice`,
+            card_uri: `${url.origin}/v1/pay/card.uri`,
             usdc: `${url.origin}/v1/pay/usdc`,
             usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
             btc: `${url.origin}/v1/pay/btc`,
