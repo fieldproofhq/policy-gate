@@ -2817,15 +2817,13 @@ ${cardFallbackHtml()}
         return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_CFO_LINK, url: STRIPE_CFO_LINK, zip: CFO_ZIP, product: 'fractional-cfo-launch-kit' }, { Link: paymentLinkHeader() }, true);
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 CFO Launch Kit — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_CFO_LINK}">
 <link rel="payment" href="${STRIPE_CFO_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Fractional CFO Launch Kit</h1>
-<p>Opening checkout. Six editable Word templates for observing received income by rail. One $42 payment meets the first-income bar.</p>
+<p>This page stays here so you can pick a rail. Six editable Word templates for observing received income by rail.</p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${STRIPE_CFO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>After payment, download: <a href="${CFO_ZIP}">Fractional-CFO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cfo/">csuite/cfo</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_CFO_LINK)});</script>
+<p>After payment, download: <a href="${CFO_ZIP}">Fractional-CFO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cfo/">csuite/cfo</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -2836,15 +2834,13 @@ ${cardFallbackHtml()}
         return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_COO_LINK, url: STRIPE_COO_LINK, zip: COO_ZIP, product: 'fractional-coo-launch-kit' }, { Link: paymentLinkHeader() }, true);
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 COO Launch Kit — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_COO_LINK}">
 <link rel="payment" href="${STRIPE_COO_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Fractional COO Launch Kit</h1>
-<p>Opening checkout. Six editable Word templates for cadence, human gates, contract boards, delivery SLAs, incident escalation, and a Friday ops review. One $42 payment meets the first-income bar.</p>
+<p>This page stays here so you can pick a rail. Six editable Word templates for cadence, human gates, contract boards, delivery SLAs, incident escalation, and a Friday ops review.</p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${STRIPE_COO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>After payment, download: <a href="${COO_ZIP}">Fractional-COO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/coo/">csuite/coo</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_COO_LINK)});</script>
+<p>After payment, download: <a href="${COO_ZIP}">Fractional-COO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/coo/">csuite/coo</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -2855,15 +2851,13 @@ ${cardFallbackHtml()}
         return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_CTO_LINK, url: STRIPE_CTO_LINK, zip: CTO_ZIP, product: 'fractional-cto-launch-kit' }, { Link: paymentLinkHeader() }, true);
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 CTO Launch Kit — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_CTO_LINK}">
 <link rel="payment" href="${STRIPE_CTO_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Fractional CTO Launch Kit</h1>
-<p>Opening checkout. Six editable Word templates for stack cadence, public URL audits, content negotiation, checkout HTML vs JSON, observability, and a Friday tech review. One $42 payment meets the first-income bar.</p>
+<p>This page stays here so you can pick a rail. Six editable Word templates for stack cadence, public URL audits, content negotiation, checkout HTML vs JSON, observability, and a Friday tech review.</p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${STRIPE_CTO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>After payment, download: <a href="${CTO_ZIP}">Fractional-CTO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cto/">csuite/cto</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_CTO_LINK)});</script>
+<p>After payment, download: <a href="${CTO_ZIP}">Fractional-CTO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cto/">csuite/cto</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -2874,15 +2868,13 @@ ${cardFallbackHtml()}
         return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_CISO_LINK, url: STRIPE_CISO_LINK, zip: CISO_ZIP, product: 'fractional-ciso-launch-kit' }, { Link: paymentLinkHeader() }, true);
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 CISO Launch Kit — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_CISO_LINK}">
 <link rel="payment" href="${STRIPE_CISO_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Fractional CISO Launch Kit</h1>
-<p>Opening checkout. Six editable Word templates for action tiers, default-deny, MCP connect review, incident halt-and-resume, and a Friday verdict review. One $42 payment meets the first-income bar.</p>
+<p>This page stays here so you can pick a rail. Six editable Word templates for action tiers, default-deny, MCP connect review, incident halt-and-resume, and a Friday verdict review.</p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${STRIPE_CISO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>After payment, download: <a href="${CISO_ZIP}">Fractional-CISO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/ciso/">csuite/ciso</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_CISO_LINK)});</script>
+<p>After payment, download: <a href="${CISO_ZIP}">Fractional-CISO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/ciso/">csuite/ciso</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -2893,15 +2885,13 @@ ${cardFallbackHtml()}
         return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_ETHICS_LINK, url: STRIPE_ETHICS_LINK, zip: ETHICS_ZIP, product: 'ethics-check-launch-kit' }, { Link: paymentLinkHeader() }, true);
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Ethics Check Kit — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_ETHICS_LINK}">
 <link rel="payment" href="${STRIPE_ETHICS_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Fieldproof Ethics Check Launch Kit</h1>
-<p>Opening checkout. Six editable Word templates for the seven canons, inclusion and voice, human-LLM team dynamics, team-size design, and a Friday ethics review. Canons stay free at GET /v1/canons. One $42 payment meets the first-income bar.</p>
+<p>This page stays here so you can pick a rail. Six editable Word templates for the seven canons, inclusion and voice, human-LLM team dynamics, team-size design, and a Friday ethics review. Canons stay free at GET /v1/canons.</p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${STRIPE_ETHICS_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>After payment, download: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/ethics/">ethics</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_ETHICS_LINK)});</script>
+<p>After payment, download: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/ethics/">ethics</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
