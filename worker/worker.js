@@ -2289,16 +2289,20 @@ ${cardFallbackHtml()}
       }
       const overlay = 'https://fieldproof.gumroad.com/l/tip-jar';
       const cover = 'https://public-files.gumroad.com/5u12tofcw2kg35lga2na9ri6cba3';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support Fieldproof $42 — tip jar</title><script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support Fieldproof $42 — tip jar</title>
+<meta http-equiv="refresh" content="0;url=${checkout}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+<script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Support Fieldproof — $42 tip jar</h1>
-<p>Listed at <strong>$42</strong>. Pay more if you want. Card checkout opens on this page.</p>
+<p>Opening checkout. Listed at <strong>$42</strong>. Pay more if you want.</p>
 <p><a href="${checkout}"><img src="${cover}" alt="Fieldproof tip jar" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
 <p style="font-size:1.25rem;font-weight:700">$42+</p>
 <p><a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Support $42</a></p>
 ${cardFallbackHtml()}
-<p>Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
+<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
+<script>location.replace(${JSON.stringify(checkout)});</script>
 </body></html>`;
-      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/btc.uri' || url.pathname === '/v1/pay/btc.txt')) {
