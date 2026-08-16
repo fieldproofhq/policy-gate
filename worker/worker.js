@@ -1116,6 +1116,7 @@ export default {
 <p style="font-size:1.25rem;font-weight:700">$42</p>
 <p><a href="${checkout}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $42 pack</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
+<p><strong>Start with one real flow:</strong> document the proposed action, authority decision, and downstream outcome; replay one refusal after a policy or prompt change. <a href="mailto:3labsio@gmail.com?subject=Fieldproof%20one-flow%20pilot">Request a one-flow pilot</a>.</p>
 <p>Store catalog: <a href="https://store.3labs.io">store.3labs.io</a>. After paying, sales show on the Gumroad dashboard. <a href="/v1/received">GET /v1/received</a> is the on-chain observer.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
