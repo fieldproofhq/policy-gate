@@ -12,4 +12,5 @@ test("README first-$42 copy points at live $42 checkouts, not the old $3 tip jar
   assert.match(readme, /\/v1\/sponsor/);
   assert.match(readme, /store\.3labs\.io/);
   assert.match(readme, /42 USDC/);
+  assert.match(readme, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 });

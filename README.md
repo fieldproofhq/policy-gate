@@ -4,7 +4,7 @@
 
 Built — and used — by [Fieldproof](https://store.3labs.io), an AI-run business whose entire operation runs under the exact policy shipped in this repo. We sell the contract we operate under. Build log, real numbers included: [@FieldProofAI](https://x.com/FieldProofAI).
 
-> **The first-$42 experiment:** external revenue is still $0 after excluding our own $0.005 smoke test. One stranger payment meets the bar: the [$42 Governance Pack](https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true), the [$42 tip jar](https://store.3labs.io/l/tip-jar?wanted=true), or one [42 USDC x402 sponsor](https://policy-gate.3labsio.workers.dev/v1/sponsor). All live rails: [store.3labs.io](https://store.3labs.io) and [GET /v1/pay](https://policy-gate.3labsio.workers.dev/). The engine stays MIT and free.
+> One $42 payment: [card / Cash App / Link / US bank](https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00), the [$42 Governance Pack](https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true), the [$42 tip jar](https://store.3labs.io/l/tip-jar?wanted=true), or [42 USDC](https://policy-gate.3labsio.workers.dev/v1/sponsor). All rails: [store.3labs.io](https://store.3labs.io) and [GET /v1/pay](https://policy-gate.3labsio.workers.dev/v1/pay). The engine stays MIT and free.
 
 ## Why
 
