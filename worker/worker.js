@@ -80,7 +80,13 @@ function cumulativeValue(ledger, field) {
 }
 
 function cumulativeMatches(cond, ledger) {
-  const val = cumulativeValue(ledger, cond.field || 'usd');
+  const field = cond.field || 'usd';
+  // An outstanding `unknown` means an effect was dispatched and never resolved. The system has
+  // lost track of this quantity, which is when moving more is least defensible. Only observing
+  // the target closes it — never a clock.
+  const unknown = Number(ledger?.[`unknown_${field}`] ?? 0);
+  if (Number.isFinite(unknown) && unknown > 0) return 'unknown-outstanding';
+  const val = cumulativeValue(ledger, field);
   if (val === undefined) return 'unanswerable';
   if ('gt' in cond) return val > cond.gt;
   if ('gte' in cond) return val >= cond.gte;
@@ -103,7 +109,7 @@ function ruleMatches(rule, req, ledger) {
   if (Array.isArray(m.cumulative)) {
     for (const cond of m.cumulative) {
       const hit = cumulativeMatches(cond, ledger);
-      if (hit === 'unanswerable') return 'unanswerable';
+      if (hit === 'unanswerable' || hit === 'unknown-outstanding') return hit;
       if (!hit) return false;
     }
   }
@@ -140,6 +146,21 @@ function check(policy, request, ledger) {
   const rules = policy.rules || [];
   for (const rule of rules) {
     const hit = ruleMatches(rule, request, ledger);
+    if (hit === 'unknown-outstanding') {
+      return {
+        decision: 'deny',
+        matched_rule: rule.id || null,
+        tier: rule.tier !== undefined ? Number(rule.tier) : null,
+        tier_label: rule.tier !== undefined ? policy.tiers[String(rule.tier)].label || null : null,
+        rationale:
+          `Rule "${rule.id || 'unnamed'}" bounds cumulative exposure and the ledger reports an unresolved ` +
+          'effect. The system has lost track of this quantity, which is when moving more is least defensible. ' +
+          'Close it by observing the target, not by waiting.',
+        policy_version: policy.version || null,
+        default_applied: false,
+        unresolved_intent: true,
+      };
+    }
     if (hit === 'unanswerable') {
       // Fail closed: the policy bounds cumulative exposure and the caller sent no ledger.
       // A cap you can skip by omitting state is decorative.
@@ -3496,6 +3517,7 @@ ${walletPayControls(payTo, payUri)}
             what: 'Optional cumulative exposure for the window. A per-action gate cannot see repetition: 49 payments of $40 each pass a $50 rule individually.',
             fields: 'committed_<field> plus intended_<field>, summed. intended counts so a burst still in flight is not invisible to the cap bounding it.',
             fails_closed: 'If a policy declares a cumulative condition and no ledger is sent, the verdict is deny with ledger_required: true. Explicit zeros are an answer; an omitted ledger is not.',
+            unresolved: 'unknown_<field> greater than zero means an effect was dispatched and never resolved. Any outstanding unknown denies with unresolved_intent: true, regardless of headroom, because the system has lost track of that quantity. It closes by observing the target, never by a clock.',
           },
           accepts: c.free ? [] : [paymentRequirementsV1(c, url.href)],
           fallback: stripeFallbackOffer(),
@@ -3729,7 +3751,13 @@ ${walletPayControls(payTo, payUri)}
             const req = { action: 'payments.send', params: { amount_usd: 40 } };
             const shown = (ledger) => {
               const v = check(capped, req, ledger);
-              return { ledger: ledger ?? null, decision: v.decision, matched_rule: v.matched_rule, ledger_required: v.ledger_required ?? false };
+              return {
+                ledger: ledger ?? null,
+                decision: v.decision,
+                matched_rule: v.matched_rule,
+                ledger_required: v.ledger_required ?? false,
+                unresolved_intent: v.unresolved_intent ?? false,
+              };
             };
             return {
               why: 'The same $40 payment, four times. Only the history changes.',
@@ -3739,6 +3767,7 @@ ${walletPayControls(payTo, payUri)}
                 shown({ committed_usd: 300, intended_usd: 0 }),
                 shown({ committed_usd: 1960, intended_usd: 0 }),
                 shown({ committed_usd: 400, intended_usd: 150 }),
+                shown({ committed_usd: 20, intended_usd: 0, unknown_usd: 5 }),
                 shown(undefined),
               ],
               notes: {

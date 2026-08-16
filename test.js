@@ -327,6 +327,28 @@ assert.equal(det1.rationale, det2.rationale);
 const plain = check(spendPolicy.rules ? { ...spendPolicy, rules: [spendPolicy.rules[1]] } : spendPolicy, smallPayment);
 assert.equal(plain.decision, 'require_approval');
 
+// An unresolved effect is not a small uncertainty to absorb into the sum. It means the system
+// lost track of this quantity, which is exactly when moving more is least defensible.
+const unresolved = check(spendPolicy, smallPayment, { committed_usd: 300, intended_usd: 0, unknown_usd: 40 });
+assert.equal(unresolved.decision, 'deny');
+assert.equal(unresolved.unresolved_intent, true);
+assert.match(unresolved.rationale, /observing the target, not by waiting/i);
+
+// It must not be aged out or absorbed: even far under the cap, an outstanding unknown stops it.
+const wayUnder = check(spendPolicy, smallPayment, { committed_usd: 1, intended_usd: 0, unknown_usd: 0.01 });
+assert.equal(wayUnder.decision, 'deny', 'any outstanding unknown stops, regardless of headroom');
+
+// An explicit zero is a resolved state and must NOT trip it.
+const resolved = check(spendPolicy, smallPayment, { committed_usd: 300, intended_usd: 0, unknown_usd: 0 });
+assert.equal(resolved.decision, 'require_approval');
+assert.equal(resolved.unresolved_intent, undefined);
+
+// Policies with no cumulative rule are unaffected by an unknown they never asked about.
+const noCumulative = { ...spendPolicy, rules: [spendPolicy.rules[1]] };
+assert.equal(check(noCumulative, smallPayment, { unknown_usd: 999 }).decision, 'require_approval');
+
+console.log('OK — unresolved-intent suite passed (4 checks)');
+
 console.log('OK — cumulative-exposure suite passed (8 checks)');
 
 console.log(`OK — ${pass} verdict cases + 5 engine checks + opaque-connector suite passed`);

@@ -71,7 +71,16 @@ An `intended` entry that never becomes `committed` consumes budget forever. Both
 
 `unknown` must be resolvable **only by observing the target, never by a clock.** Reconciliation closes an intent — ask the processor whether that idempotency key settled. If you cannot reach the target, the state is still `unknown` and the correct behaviour is still to stop: a stuck intent is the system reporting that it has lost track of money, which is exactly when it should refuse to move more. Any expiry is therefore *a named person deciding on evidence that a thing did not happen*, recorded like any other write. Loud, not automatic.
 
-**This engine does not implement reconciliation.** It reads the ledger you pass it. Closing intents is your side of the contract, and it is the part that is easy to get quietly wrong.
+What the engine *can* do is refuse while one is outstanding, and it now does:
+
+```js
+check(policy, payment, { committed_usd: 20, intended_usd: 0, unknown_usd: 5 });
+// deny — unresolved_intent: true, regardless of headroom
+```
+
+Any `unknown_<field>` above zero denies, **however far under the cap you are**. Losing track of $5 is not a rounding error to absorb into the sum; it is the one condition under which moving more is least defensible. An explicit `unknown_usd: 0` is a resolved state and passes normally.
+
+**The engine still does not implement reconciliation.** It reads the ledger you pass it and refuses while it says you are lost. *Closing* an intent — going and asking whether that key settled — is your side of the contract, and it is the part that is easy to get quietly wrong.
 
 This gap was found in public by [Moltbook](https://www.moltbook.com/) agents **neo_konsi_s2bw** and **maies**, arguing with us about retry loops. The full model, including the caveat on determinism, is in the free [Agent Action Tiers & Ethics Canons](https://fieldproofhq.github.io/agent-governance-reference.html).
 

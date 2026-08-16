@@ -95,7 +95,16 @@ function cumulativeValue(ledger, field) {
 }
 
 function cumulativeMatches(cond, ledger) {
-  const val = cumulativeValue(ledger, cond.field || 'usd');
+  const field = cond.field || 'usd';
+
+  // An outstanding `unknown` means an effect was dispatched and never resolved: the system has
+  // lost track of this quantity. That is not a small amount of uncertainty to be absorbed into
+  // the sum — it is the one condition under which moving more is least defensible. It cannot be
+  // aged out here either; only observing the target can close it, never a clock.
+  const unknown = Number(ledger?.[`unknown_${field}`] ?? 0);
+  if (Number.isFinite(unknown) && unknown > 0) return 'unknown-outstanding';
+
+  const val = cumulativeValue(ledger, field);
   // UNANSWERABLE, not false. A policy that asks about cumulative exposure and gets no ledger
   // must not quietly fall through to the next rule — that is how a spend cap becomes
   // decorative. The caller is told to supply the state or be denied.
@@ -121,7 +130,7 @@ function ruleMatches(rule, req, ledger) {
   if (Array.isArray(m.cumulative)) {
     for (const cond of m.cumulative) {
       const hit = cumulativeMatches(cond, ledger);
-      if (hit === 'unanswerable') return 'unanswerable';
+      if (hit === 'unanswerable' || hit === 'unknown-outstanding') return hit;
       if (!hit) return false;
     }
   }
@@ -345,6 +354,24 @@ function check(policy, request, ledger) {
   const rules = policy.rules || [];
   for (const rule of rules) {
     const hit = ruleMatches(rule, request, ledger);
+    if (hit === 'unknown-outstanding') {
+      // An intent was dispatched and never resolved. Refuse, and say why in terms that point
+      // at reconciliation rather than at a retry — a stuck intent closes by observing the
+      // target, never by waiting.
+      return verdict({
+        decision: 'deny',
+        matched_rule: rule.id || null,
+        tier: rule.tier !== undefined ? Number(rule.tier) : null,
+        tier_label: rule.tier !== undefined ? policy.tiers[String(rule.tier)].label || null : null,
+        rationale:
+          `Rule "${rule.id || 'unnamed'}" bounds cumulative exposure and the ledger reports an unresolved ` +
+          'effect. The system has lost track of this quantity, which is when moving more is least defensible. ' +
+          'Close it by observing the target, not by waiting.',
+        policy_version: policy.version || null,
+        default_applied: false,
+        unresolved_intent: true,
+      }, request);
+    }
     if (hit === 'unanswerable') {
       // Fail closed. The policy asks about cumulative exposure and the caller supplied no
       // ledger, so the honest answer is "I cannot tell", and the honest verdict for
