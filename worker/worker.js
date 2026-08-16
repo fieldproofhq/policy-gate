@@ -863,6 +863,28 @@ function webfingerKnown(origin, resource) {
   return known.has(resource);
 }
 
+function hostMetaJson(origin) {
+  return {
+    subject: origin,
+    properties: {
+      'http://schema.org/price': '42.00',
+      'http://schema.org/priceCurrency': 'USD',
+    },
+    links: [
+      {
+        rel: 'lrdd',
+        type: 'application/jrd+json',
+        template: `${origin}/.well-known/webfinger?resource={uri}`,
+      },
+      { rel: 'payment', href: STRIPE_PAYMENT_LINK, type: 'text/html' },
+      { rel: 'describedby', href: `${origin}/v1/invoice`, type: 'application/json' },
+      { rel: 'https://fieldproofhq.github.io/rel/card-uri', href: `${origin}/v1/pay/card.uri`, type: 'text/uri-list' },
+      { rel: 'https://fieldproofhq.github.io/rel/usdc-uri', href: `${origin}/v1/pay/usdc.uri`, type: 'text/uri-list' },
+      { rel: 'https://fieldproofhq.github.io/rel/btc-uri', href: `${origin}/v1/pay/btc.uri`, type: 'text/uri-list' },
+    ],
+  };
+}
+
 function hostMetaXml(origin) {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -976,6 +998,13 @@ function openApiSpec(origin) {
           operationId: 'nodeInfo21',
           summary: 'NodeInfo 2.1 document. metadata.payment is the live $42 Stripe checkout.',
           responses: { 200: { description: 'NodeInfo 2.1 with payment metadata' } },
+        },
+      },
+      '/.well-known/host-meta.json': {
+        get: {
+          operationId: 'hostMetaJson',
+          summary: 'RFC 6415 JSON host-meta. rel=payment is the live $42 Stripe checkout.',
+          responses: { 200: { description: 'application/jrd+json host-meta' } },
         },
       },
       '/.well-known/webfinger': {
@@ -1991,6 +2020,7 @@ export default {
         `${url.origin}/.well-known/humans.txt`,
         `${url.origin}/.well-known/webfinger`,
         `${url.origin}/.well-known/host-meta`,
+        `${url.origin}/.well-known/host-meta.json`,
         `${url.origin}/.well-known/nodeinfo`,
         `${url.origin}/nodeinfo/2.1`,
         `${url.origin}/.well-known/llms.txt`,
@@ -2051,6 +2081,7 @@ export default {
         `- humans.txt: ${url.origin}/humans.txt`,
         `- WebFinger: ${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
         `- NodeInfo: ${url.origin}/.well-known/nodeinfo`,
+        `- host-meta.json: ${url.origin}/.well-known/host-meta.json`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2484,6 +2515,17 @@ ${cardFallbackHtml()}
       });
     }
 
+    if (request.method === 'GET' && url.pathname === '/.well-known/host-meta.json') {
+      return new Response(JSON.stringify(hostMetaJson(url.origin), null, 2), {
+        status: 200,
+        headers: {
+          'content-type': 'application/jrd+json; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
     if (
       request.method === 'GET' &&
       (url.pathname === '/humans.txt' || url.pathname === '/.well-known/humans.txt')
@@ -2586,6 +2628,7 @@ ${cardFallbackHtml()}
             humans: `${url.origin}/humans.txt`,
             webfinger: `${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
             nodeinfo: `${url.origin}/.well-known/nodeinfo`,
+            host_meta: `${url.origin}/.well-known/host-meta.json`,
           },
         },
         {},
