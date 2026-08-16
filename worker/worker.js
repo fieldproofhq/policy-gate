@@ -799,6 +799,8 @@ const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPCS = ['https://mainnet.base.org', 'https://base.publicnode.com', 'https://1rpc.io/base'];
 const BTC_ADDRESS = 'bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t';
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00';
+const STRIPE_CFO_LINK = 'https://buy.stripe.com/6oU28sa5Y9bLgTn9Lf1sQ01';
+const CFO_ZIP = 'https://fieldproofhq.github.io/csuite/cfo/Fractional-CFO-Launch-Kit.zip';
 
 /** Card path for agents that get a 402 but cannot settle USDC. Kept out of `accepts`
  *  so x402 facilitators still see only the exact-scheme USDC quote. */
@@ -1439,6 +1441,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="https://store.3labs.io">Browse the store</a> — Governance Pack, CMO kit, tip jar</li>
 <li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, Gumroad card</li>
 <li><a href="${origin}/v1/pay/cmo">$39 Fractional CMO kit</a> — humans and agents</li>
+<li><a href="${origin}/v1/pay/cfo">$42 Fractional CFO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
 <li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO live; CFO, COO, CTO, CISO operating contracts</li>
 </ul>
@@ -1555,6 +1558,15 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 39,
       meets_first_42: false,
       note: 'live Fractional CMO Launch Kit; $39 counts toward $42 but does not meet it alone',
+    },
+    {
+      id: 'cfo-kit',
+      url: `${origin}/v1/pay/cfo`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_uri: STRIPE_CFO_LINK,
+      meets_first_42: true,
+      note: 'live Fractional CFO Launch Kit Word ZIP; one $42 Stripe payment meets the bar',
     },
     {
       id: 'tip-jar',
@@ -2365,6 +2377,25 @@ ${cardFallbackHtml()}
 ${cardFallbackHtml()}
 <p>If nothing happens, use the button. Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
 <script>location.replace(${JSON.stringify(checkout)});</script>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/cfo' || url.pathname === '/v1/pay/cfo.uri')) {
+      if (url.pathname === '/v1/pay/cfo.uri' || wantsUriList(request)) return uriListResponse(STRIPE_CFO_LINK);
+      if (wantsJson(request)) {
+        return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_CFO_LINK, url: STRIPE_CFO_LINK, zip: CFO_ZIP, product: 'fractional-cfo-launch-kit' }, { Link: paymentLinkHeader() }, true);
+      }
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 CFO Launch Kit — Fieldproof</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_CFO_LINK}">
+<link rel="payment" href="${STRIPE_CFO_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Buy the $42 Fractional CFO Launch Kit</h1>
+<p>Opening checkout. Six editable Word templates for observing received income by rail. One $42 payment meets the first-income bar.</p>
+<p style="font-size:1.25rem;font-weight:700">$42</p>
+<p><a href="${STRIPE_CFO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>After payment, download: <a href="${CFO_ZIP}">Fractional-CFO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cfo/">csuite/cfo</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_CFO_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
