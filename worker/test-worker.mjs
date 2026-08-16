@@ -349,7 +349,7 @@ assert.ok(m.result.capabilities.tools, 'declares tool capability');
 
 m = await mcp(paidEnv, 'tools/list');
 const toolNames = m.result.tools.map((t) => t.name);
-assert.deepStrictEqual(toolNames.sort(), ['policy_check', 'policy_example', 'policy_rules']);
+assert.deepStrictEqual(toolNames.sort(), ['first_42_sponsor', 'policy_check', 'policy_example', 'policy_rules']);
 for (const t of m.result.tools) {
   assert.ok(t.description?.length > 20 && t.inputSchema, `${t.name} needs a description and schema`);
 }
@@ -370,6 +370,14 @@ const quoted = JSON.parse(m.result.content[0].text);
 assert.strictEqual(quoted.payment_required, true, 'paid tool must not answer for free');
 assert.strictEqual(quoted.decision, undefined, 'MCP must not leak the verdict');
 assert.strictEqual(quoted.accepts[0].payTo, paidEnv.PAY_TO, 'quotes the real payee');
+
+m = await mcp(paidEnv, 'tools/call', { name: 'first_42_sponsor' });
+const sponsorQuote = JSON.parse(m.result.content[0].text);
+assert.equal(sponsorQuote.price_usd, 42);
+assert.equal(sponsorQuote.amount_atomic, '42000000');
+assert.match(sponsorQuote.endpoint, /\/v1\/sponsor$/);
+assert.equal(sponsorQuote.accepts[0].maxAmountRequired, '42000000');
+assert.notEqual(sponsorQuote.accepts[0].maxAmountRequired, '5000');
 
 /* free mode is the one place it may answer */
 m = await mcp(freeEnv, 'tools/call', { name: 'policy_check', arguments: { request: { action: 'gmail.read' } } });

@@ -220,6 +220,12 @@ const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: 'first_42_sponsor',
+    description:
+      'Pay Fieldproof first $42 of external income in one x402 settlement: 42 USDC on Base. Returns the unpaid POST /v1/sponsor quote. The $0.005 self-test is excluded. Self-pays do not count.',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ];
 
 /* ------------------------------ x402 helpers ------------------------------ */
@@ -704,7 +710,7 @@ export default {
             capabilities: { tools: {} },
             serverInfo: { name: 'fieldproof-policy-gate', version: '0.2' },
             instructions:
-              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check returns x402 payment instructions.',
+              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check quotes $0.005/check; first_42_sponsor quotes one 42 USDC settlement that meets the first-$42 bar.',
           });
         case 'notifications/initialized':
           return new Response(null, { status: 202, headers: corsHeaders() });
@@ -738,6 +744,19 @@ export default {
               endpoint: `${url.origin}/v1/check`,
               accepts: [paymentRequirementsV1(c, `${url.origin}/v1/check`)],
               how: 'POST the endpoint with an X-PAYMENT header (x402). Free evaluation: policy_example, policy_rules.',
+            });
+          }
+          if (name === 'first_42_sponsor') {
+            const quote = sponsorCfg(c);
+            return text({
+              payment_required: !c.free,
+              price_usd: 42,
+              amount_atomic: quote.amount,
+              endpoint: `${url.origin}/v1/sponsor`,
+              pay_to: c.payTo,
+              accepts: c.free ? [] : [paymentRequirementsV1(quote, `${url.origin}/v1/sponsor`)],
+              how: 'POST /v1/sponsor with an X-PAYMENT header (x402) for 42 USDC on Base. One settlement meets the first-$42 bar. Self-pays do not count.',
+              observer: `${url.origin}/v1/received`,
             });
           }
           return fail(-32602, `Unknown tool: ${name}`);
