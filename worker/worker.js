@@ -1008,6 +1008,23 @@ function openApiSpec(origin) {
           responses: { 302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` } },
         },
       },
+      '/v1/quote': {
+        get: {
+          operationId: 'quote42',
+          summary: 'Alias of /v1/offer for directories that key on URL. HTML 302s to Stripe; otherwise HTTP 402 with 42 USDC plus card fallback.',
+          responses: {
+            302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` },
+            402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
+          },
+        },
+        post: {
+          operationId: 'quote42Post',
+          summary: 'POST-only $42 quote. Always 402 with 42 USDC plus card fallback.',
+          responses: {
+            402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
+          },
+        },
+      },
       '/v1/offer': {
         get: {
           operationId: 'offer42',
@@ -1452,6 +1469,14 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 42,
       meets_first_42: true,
       note: 'canonical $42 quote: browsers 302 to Stripe; agents get a 402 with USDC plus card fallback',
+    },
+    {
+      id: 'quote-42',
+      url: `${origin}/v1/quote`,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'directory alias of /v1/offer; GET or POST 402 with 42 USDC plus card fallback',
     },
     {
       id: 'invoice-42',
@@ -1899,6 +1924,7 @@ export default {
         `${url.origin}/v1/pay/card.uri`,
         `${url.origin}/v1/sponsor`,
         `${url.origin}/v1/offer`,
+        `${url.origin}/v1/quote`,
         `${url.origin}/v1/invoice`,
         `${url.origin}/v1/pay/usdc.uri`,
         `${url.origin}/v1/pay/btc.uri`,
@@ -1969,6 +1995,7 @@ export default {
         `- Mission offer (auto-opens Stripe): https://fieldproofhq.github.io/offer/`,
         `- Worker short URL: ${url.origin}/pay`,
         `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
+        `- Directory quote alias (GET or POST 402): ${url.origin}/v1/quote`,
         `- Multi-rail invoice (HTTP 200): ${url.origin}/v1/invoice`,
         `- MCP pay tool (first_42_sponsor): ${url.origin}/mcp`,
         `- Agent skill: ${url.origin}/skills/pay/SKILL.md`,
@@ -2483,6 +2510,7 @@ ${cardFallbackHtml()}
           methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
           also: {
             invoice: `${url.origin}/v1/invoice`,
+            quote: `${url.origin}/v1/quote`,
             skill: `${url.origin}/skills/pay/SKILL.md`,
             funding: `${url.origin}/package.json`,
             card_uri: `${url.origin}/v1/pay/card.uri`,
@@ -2743,7 +2771,13 @@ ${cardFallbackHtml()}
       return json(200, invoice, { Link: paymentLinkHeader() }, true);
     }
 
-    if ((request.method === 'GET' || request.method === 'POST') && (url.pathname === '/v1/offer' || url.pathname === '/v1/offer/')) {
+    if (
+      (request.method === 'GET' || request.method === 'POST') &&
+      (url.pathname === '/v1/offer' ||
+        url.pathname === '/v1/offer/' ||
+        url.pathname === '/v1/quote' ||
+        url.pathname === '/v1/quote/')
+    ) {
       if (request.method === 'GET' && wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
       const quote = sponsorCfg(c);
       if (c.free) {
