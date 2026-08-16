@@ -966,6 +966,16 @@ res = await call(paidEnv, 'GET', '/healthz');
 assert.strictEqual(res.status, 200, 'healthz never paywalled');
 res = await call(paidEnv, 'GET', '/v1/policies');
 assert.strictEqual(res.status, 200, 'policies list never paywalled');
+res = await call(paidEnv, 'GET', '/v1/policies', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const policiesPage = await res.text();
+assert.match(policiesPage, /Pay \$42 with card/);
+assert.match(policiesPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(policiesPage, /http-equiv="refresh"/);
+assert.match(policiesPage, /location\.replace/);
+assert.match(policiesPage, /<ul>/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 /* malformed payment header -> 402 again, not 500 */
 res = await call(paidEnv, 'POST', '/v1/check', { request: { action: 'x.read' } }, { 'x-payment': '!!!notbase64!!!' });

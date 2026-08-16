@@ -2936,6 +2936,24 @@ ${walletPayControls(payTo, payUri)}
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/policies') {
+      if (wantsHtml(request)) {
+        const ids = Object.keys(BUILTINS).map((id) => `<li><code>${id}</code></li>`).join('');
+        const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof policies</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Pay $42</h1>
+<p>Opening checkout. Policies are public. One $42 card payment meets the first-income bar.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<ul>${ids}</ul>
+<p>JSON: <a href="/v1/policies">GET /v1/policies</a> without HTML Accept. Worked verdicts: <a href="/v1/example">GET /v1/example</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+</body></html>`;
+        return new Response(html, {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       // The ruleset is documentation, not the product. What is sold is the evaluation —
       // deterministic, versioned, and auditable. Returning only opaque ids meant nobody
       // deciding whether to pay could see what a verdict is grounded in.
