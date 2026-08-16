@@ -2542,9 +2542,19 @@ export default {
               note: 'Card checkout. Delivers the Ethics Check and C-suite Word kits — NOT the Agentic AI Governance Pack. For the pack, use store.3labs.io.',
             },
             {
+              id: 'zelle', amount_usd: 42, asset: 'USD',
+              pay_to: '3labsio@gmail.com', pay_uri: `${url.origin}/v1/pay/zelle.uri`,
+              meets_goal_alone: true, note: 'Zero fees. US bank to US bank, memo "Fieldproof".',
+            },
+            {
               id: 'governance-pack', amount_usd: 42, asset: 'USD',
               url: 'https://store.3labs.io/l/agentic-ai-governance-pack',
               meets_goal_alone: true, note: 'Seven editable Word documents. One of the seven is free to read first.',
+            },
+            {
+              id: 'tip-jar', amount_usd: 42, asset: 'USD',
+              url: 'https://store.3labs.io/l/tip-jar',
+              meets_goal_alone: true, note: 'Fuel the experiment. Buys nothing; it is a tip.',
             },
             {
               id: 'x402-check', amount_usd: 0.005, asset: 'USDC', network: 'Base (eip155:8453)',
