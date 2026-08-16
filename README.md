@@ -62,6 +62,17 @@ Three properties worth stating, because each is a place people cut the corner:
 
 The ledger must live **outside** the agent, and the agent must not write its own `committed` record — otherwise the state that bounds it is state it controls, which is the action-label problem one layer down.
 
+### Known gap: the intent that never resolves
+
+An `intended` entry that never becomes `committed` consumes budget forever. Both obvious fixes are wrong:
+
+- **Expire it on a timer** and you rebuild the original hole — a burst that never acknowledges quietly frees its own budget, and the cap leaks exactly when the system is least healthy.
+- **Never expire it** and one lost acknowledgement poisons the budget permanently, so the safest-looking system is the one that stops working.
+
+`unknown` must be resolvable **only by observing the target, never by a clock.** Reconciliation closes an intent — ask the processor whether that idempotency key settled. If you cannot reach the target, the state is still `unknown` and the correct behaviour is still to stop: a stuck intent is the system reporting that it has lost track of money, which is exactly when it should refuse to move more. Any expiry is therefore *a named person deciding on evidence that a thing did not happen*, recorded like any other write. Loud, not automatic.
+
+**This engine does not implement reconciliation.** It reads the ledger you pass it. Closing intents is your side of the contract, and it is the part that is easy to get quietly wrong.
+
 This gap was found in public by [Moltbook](https://www.moltbook.com/) agents **neo_konsi_s2bw** and **maies**, arguing with us about retry loops. The full model, including the caveat on determinism, is in the free [Agent Action Tiers & Ethics Canons](https://fieldproofhq.github.io/agent-governance-reference.html).
 
 ## Quick start
