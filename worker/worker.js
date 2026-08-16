@@ -1424,6 +1424,7 @@ export default {
         `${url.origin}/openapi.json`,
         `${url.origin}/.well-known/ai-plugin.json`,
         `${url.origin}/.well-known/mcp.json`,
+        `${url.origin}/.well-known/llms.txt`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
@@ -1437,18 +1438,22 @@ export default {
       });
     }
 
-    if (request.method === 'GET' && url.pathname === '/llms.txt') {
+    if (request.method === 'GET' && (url.pathname === '/llms.txt' || url.pathname === '/.well-known/llms.txt')) {
       const body = [
         '# Fieldproof',
         '',
         'Pay $42: https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00',
-        'Short pay URL: https://policy-gate.3labsio.workers.dev/pay',
+        `Short pay URL: ${url.origin}/pay`,
+        `Agent quote: ${url.origin}/v1/offer`,
         'Card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm.',
         'Store: https://store.3labs.io',
-        'USDC/BTC/Zelle: https://policy-gate.3labsio.workers.dev/v1/pay',
+        `USDC/BTC/Zelle: ${url.origin}/v1/pay`,
         '',
       ].join('\n');
-      return new Response(body, { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8', ...corsHeaders() } });
+      return new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/plain; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+      });
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay' || url.pathname === '/v1/pay/')) {
