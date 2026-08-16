@@ -220,6 +220,10 @@ const zellePage = await res.text();
 assert.match(zellePage, /\$42/);
 assert.match(zellePage, /3labsio@gmail.com/);
 assert.match(zellePage, /Fieldproof/);
+assert.match(zellePage, /mailto:3labsio@gmail.com/);
+assert.match(zellePage, /Copy email/);
+assert.match(zellePage, /Copy \$42/);
+assert.match(zellePage, /navigator\.clipboard/);
 const btc = listed.checkouts.find((o) => o.id === 'bitcoin');
 assert.match(btc.pay_to, /^bc1q/);
 assert.match(btc.url, /\/v1\/pay\/btc/);
@@ -402,21 +406,6 @@ async function mcp(env, method, params) {
   if (res.status === 202) return { accepted: true };
   return res.json();
 }
-
-res = await call(paidEnv, 'GET', '/mcp');
-assert.strictEqual(res.status, 200, 'MCP GET discovery is public');
-const mcpIndex = await res.json();
-assert.strictEqual(mcpIndex.payment_endpoint, `${base}/v1/check`);
-assert.strictEqual(mcpIndex.x402, `${base}/.well-known/x402`);
-assert.strictEqual(Number(mcpIndex.price_usd), 0.005);
-assert.strictEqual(mcpIndex.currency, 'USDC');
-
-res = await call(paidEnv, 'GET', '/.well-known/mcp.json');
-assert.strictEqual(res.status, 200, 'MCP discovery document is public');
-const mcpDiscovery = await res.json();
-assert.strictEqual(mcpDiscovery.server_url, `${base}/mcp`);
-assert.strictEqual(mcpDiscovery.x402, `${base}/.well-known/x402`);
-assert.ok(mcpDiscovery.tools.some((t) => t.name === 'policy_check'));
 
 let m = await mcp(paidEnv, 'initialize', { protocolVersion: '2025-06-18' });
 assert.strictEqual(m.result.serverInfo.name, 'fieldproof-policy-gate');

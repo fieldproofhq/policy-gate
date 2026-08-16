@@ -524,11 +524,11 @@ function wantsHtml(request) {
   return /text\/html/i.test(accept);
 }
 
-function copyPayControls(address, payUri) {
+function copyPayControls(address, payUri, addressLabel = 'Copy address', invoiceLabel = 'Copy invoice') {
   const esc = (value) => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return `<p>
-<button type="button" data-copy="${esc(address)}">Copy address</button>
-<button type="button" data-copy="${esc(payUri)}">Copy invoice</button>
+<button type="button" data-copy="${esc(address)}">${addressLabel}</button>
+<button type="button" data-copy="${esc(payUri)}">${invoiceLabel}</button>
 </p>
 <script>
 document.querySelectorAll("[data-copy]").forEach(function(btn){
@@ -983,17 +983,7 @@ export default {
     // is a discovery channel and not a giveaway of the product.
     if (url.pathname === '/mcp') {
       if (request.method === 'GET') {
-        return json(200, {
-          transport: 'streamable-http',
-          protocol: 'mcp',
-          usage: 'POST JSON-RPC 2.0 here',
-          tools: MCP_TOOLS.map((t) => t.name),
-          x402: `${url.origin}/.well-known/x402`,
-          payment_endpoint: `${url.origin}/v1/check`,
-          price_usd: c.free ? 0 : c.priceUsd,
-          currency: 'USDC',
-          network: c.network || 'eip155:8453',
-        }, {}, true);
+        return json(200, { transport: 'streamable-http', protocol: 'mcp', usage: 'POST JSON-RPC 2.0 here', tools: MCP_TOOLS.map((t) => t.name) }, {}, true);
       }
       if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' }, {}, true);
 
@@ -1063,20 +1053,6 @@ export default {
         default:
           return fail(-32601, `Method not found: ${rpc.method}`);
       }
-    }
-
-    // Standard MCP discovery document used by directories and MCP clients.
-    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
-      return json(200, {
-        name: 'fieldproof-policy-gate',
-        title: 'Fieldproof Policy Gate',
-        description: 'Deterministic allow / require_approval / deny verdicts for proposed agent actions.',
-        server_url: `${url.origin}/mcp`,
-        transport: 'streamable-http',
-        protocol: 'mcp',
-        tools: MCP_TOOLS.map((t) => ({ name: t.name, description: t.description })),
-        x402: `${url.origin}/.well-known/x402`,
-      }, {}, true);
     }
 
     if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
@@ -1227,16 +1203,17 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/zelle') {
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
 <p>Send <strong>$42 USD</strong> via Zelle. Zero fees.</p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
 <li>Amount: <strong>$42.00</strong></li>
-<li>To: <strong>3labsio@gmail.com</strong></li>
+<li>To: <a href="mailto:3labsio@gmail.com"><strong>3labsio@gmail.com</strong></a></li>
 <li>Memo: <strong>Fieldproof</strong></li>
 </ul>
-<p>After sending, the receipt is the Zelle email to 3labsio@gmail.com — not this page.</p>
+${copyPayControls('3labsio@gmail.com', '42.00', 'Copy email', 'Copy $42')}
+<p><a href="mailto:3labsio@gmail.com">Open in mail</a></p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
