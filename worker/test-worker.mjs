@@ -96,6 +96,8 @@ assert.match(cmoPage, /public-files\.gumroad\.com\/q8ndyh3mpngn25hk15p4pwuby0my/
 assert.match(cmoPage, /<img /);
 assert.match(cmoPage, /Buy the \$39 CMO kit/);
 assert.match(cmoPage, /csuite\/cmo/);
+assert.match(cmoPage, /gumroad\.com\/js\/gumroad\.js/);
+assert.match(cmoPage, /gumroad-button/);
 assert.doesNotMatch(cmoPage, /Self-buys do not count/i);
 res = await call(freeEnv, 'GET', '/v1/pay');
 assert.strictEqual(res.status, 200);
