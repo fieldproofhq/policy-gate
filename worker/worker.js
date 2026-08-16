@@ -1483,6 +1483,15 @@ ${walletPayControls(payTo, usdcUri)}
 </body></html>`;
 }
 
+async function htmlCheckoutResponse(origin) {
+  let btc = null;
+  try { btc = await observeBtc(); } catch { btc = null; }
+  return new Response(payIndexHtml(origin, btc), {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+  });
+}
+
 function checkouts(c, origin, btc = null) {
   const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
   return [
@@ -2665,22 +2674,27 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/ai-plugin.json') {
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return json(200, aiPluginManifest(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return json(200, mcpDiscovery(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/nodeinfo') {
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return json(200, nodeInfoIndex(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && (url.pathname === '/nodeinfo/2.1' || url.pathname === '/.well-known/nodeinfo/2.1')) {
+      if (url.pathname === '/nodeinfo/2.1' && wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return json(200, nodeInfo21(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/webfinger') {
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       const resource = url.searchParams.get('resource');
       if (!resource) {
         return json(400, { error: 'resource_required', example: `${url.origin}/.well-known/webfinger?resource=acct:pay@${url.host}` }, { Link: paymentLinkHeader() }, true);
@@ -2699,6 +2713,7 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/.well-known/host-meta' || url.pathname === '/.well-known/host-meta.xml')) {
+      if (url.pathname === '/.well-known/host-meta' && wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return new Response(hostMetaXml(url.origin), {
         status: 200,
         headers: {
@@ -2710,6 +2725,7 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/host-meta.json') {
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return new Response(JSON.stringify(hostMetaJson(url.origin), null, 2), {
         status: 200,
         headers: {
