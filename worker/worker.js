@@ -2614,6 +2614,7 @@ export default {
         '',
         '## Card / bank / wallets',
         `- Stripe Payment Link: ${STRIPE_PAYMENT_LINK}`,
+        '  Delivers the Ethics Check and C-suite Word kits, NOT the Governance Pack. For the pack: https://store.3labs.io/l/agentic-ai-governance-pack',
         `- Card URI (text/uri-list): ${url.origin}/v1/pay/card.uri`,
         `- Card QR (scannable): ${url.origin}/v1/pay/card.png`,
         '- Methods: card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm',
