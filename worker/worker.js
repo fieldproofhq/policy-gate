@@ -2101,6 +2101,14 @@ export default {
     }
 
     if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
+      if (wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const locs = [
         `${url.origin}/pay`,
         `${url.origin}/v1/pay`,
@@ -2645,6 +2653,14 @@ ${cardFallbackHtml()}
       request.method === 'GET' &&
       (url.pathname === '/.well-known/agent-card.json' || url.pathname === '/.well-known/agent.json')
     ) {
+      if (url.pathname === '/.well-known/agent-card.json' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(200, agentCard(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
@@ -2705,6 +2721,14 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/.well-known/did.json' || url.pathname === '/did.json')) {
+      if (url.pathname === '/did.json' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return new Response(JSON.stringify(didWeb(url.origin), null, 2), {
         status: 200,
         headers: {
