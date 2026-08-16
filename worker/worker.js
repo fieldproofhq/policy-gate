@@ -2508,6 +2508,56 @@ export default {
     if (request.method === 'GET' && (url.pathname === '/v1/pay' || url.pathname === '/v1/pay/')) {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
+
+      // This route is documented as "an index of every live $42 rail", and it was serving HTML
+      // with a meta-refresh and a location.replace to one checkout, for every Accept header.
+      // So an agent asking for JSON could not enumerate anything, and a human never saw the
+      // USDC / Bitcoin / Zelle options at all — the rails that meet $42 on their own.
+      // Machines get the index as data; browsers get the page.
+      const accept = request.headers.get('accept') || '';
+      if (!accept.includes('text/html')) {
+        const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+        return json(200, {
+          endpoint: `${url.origin}/v1/pay`,
+          goal_usd: GOAL_USD,
+          note: 'Every rail below is live. Any one of the $42 rails meets the bar alone. Self-payments are excluded from the public counter.',
+          rails: [
+            {
+              id: 'x402-sponsor', amount_usd: 42, asset: 'USDC', network: 'Base (eip155:8453)',
+              method: 'POST', url: `${url.origin}/v1/sponsor`, pay_to: payTo,
+              meets_goal_alone: true, note: 'One settlement. GET the same path for docs.',
+            },
+            {
+              id: 'usdc-direct', amount_usd: 42, asset: 'USDC', network: 'Base (eip155:8453)',
+              pay_to: payTo, pay_uri: usdcEip681(payTo), meets_goal_alone: true,
+            },
+            {
+              id: 'bitcoin', amount_usd: 42, asset: 'BTC',
+              pay_to: btc?.address ?? null, pay_uri: btc?.uri ?? null,
+              meets_goal_alone: true, live: Boolean(btc?.address),
+            },
+            {
+              id: 'card', amount_usd: 42, asset: 'USD', url: STRIPE_PAYMENT_LINK,
+              meets_goal_alone: true,
+              note: 'Card checkout. Delivers the Ethics Check and C-suite Word kits — NOT the Agentic AI Governance Pack. For the pack, use store.3labs.io.',
+            },
+            {
+              id: 'governance-pack', amount_usd: 42, asset: 'USD',
+              url: 'https://store.3labs.io/l/agentic-ai-governance-pack',
+              meets_goal_alone: true, note: 'Seven editable Word documents. One of the seven is free to read first.',
+            },
+            {
+              id: 'x402-check', amount_usd: 0.005, asset: 'USDC', network: 'Base (eip155:8453)',
+              method: 'POST', url: `${url.origin}/v1/check`,
+              meets_goal_alone: false, checks_for_42: 8400,
+            },
+          ],
+          free_first: {
+            worked_verdicts: `${url.origin}/v1/example`,
+            full_ruleset: `${url.origin}/v1/policies`,
+          },
+        });
+      }
       return new Response(payIndexHtml(url.origin, btc), { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
