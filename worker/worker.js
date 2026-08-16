@@ -803,10 +803,12 @@ const STRIPE_CFO_LINK = 'https://buy.stripe.com/6oU28sa5Y9bLgTn9Lf1sQ01';
 const STRIPE_COO_LINK = 'https://buy.stripe.com/4gM7sM4LEafPcD72iN1sQ02';
 const STRIPE_CTO_LINK = 'https://buy.stripe.com/6oU5kE91UbjTeLfg9D1sQ03';
 const STRIPE_CISO_LINK = 'https://buy.stripe.com/7sY14odia87H32xe1v1sQ04';
+const STRIPE_ETHICS_LINK = 'https://buy.stripe.com/aFa9AUce6afPdHb0aF1sQ05';
 const CFO_ZIP = 'https://fieldproofhq.github.io/csuite/cfo/Fractional-CFO-Launch-Kit.zip';
 const COO_ZIP = 'https://fieldproofhq.github.io/csuite/coo/Fractional-COO-Launch-Kit.zip';
 const CTO_ZIP = 'https://fieldproofhq.github.io/csuite/cto/Fractional-CTO-Launch-Kit.zip';
 const CISO_ZIP = 'https://fieldproofhq.github.io/csuite/ciso/Fractional-CISO-Launch-Kit.zip';
+const ETHICS_ZIP = 'https://fieldproofhq.github.io/ethics/Fieldproof-Ethics-Check-Launch-Kit.zip';
 
 /** Card path for agents that get a 402 but cannot settle USDC. Kept out of `accepts`
  *  so x402 facilitators still see only the exact-scheme USDC quote. */
@@ -1451,6 +1453,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/coo">$42 Fractional COO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/cto">$42 Fractional CTO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/ciso">$42 Fractional CISO kit</a> — six Word templates + ZIP</li>
+<li><a href="${origin}/v1/pay/ethics">$42 Ethics Check kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
 <li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — C-suite Word kits live (CMO, CFO, COO, CTO, CISO)</li>
 </ul>
@@ -1603,6 +1606,15 @@ function checkouts(c, origin, btc = null) {
       pay_uri: STRIPE_CISO_LINK,
       meets_first_42: true,
       note: 'live Fractional CISO Launch Kit Word ZIP; one $42 Stripe payment meets the bar',
+    },
+    {
+      id: 'ethics-kit',
+      url: `${origin}/v1/pay/ethics`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_uri: STRIPE_ETHICS_LINK,
+      meets_first_42: true,
+      note: 'live Fieldproof Ethics Check Word ZIP; one $42 Stripe payment meets the bar',
     },
     {
       id: 'tip-jar',
@@ -2355,7 +2367,7 @@ ${cardFallbackHtml()}
             url: STRIPE_PAYMENT_LINK,
             methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
             card: STRIPE_PAYMENT_LINK,
-            zips: { cfo: CFO_ZIP, coo: COO_ZIP, cto: CTO_ZIP, ciso: CISO_ZIP },
+            zips: { cfo: CFO_ZIP, coo: COO_ZIP, cto: CTO_ZIP, ciso: CISO_ZIP, ethics: ETHICS_ZIP },
           },
           { Link: paymentLinkHeader() },
           true
@@ -2371,7 +2383,7 @@ ${cardFallbackHtml()}
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p><a href="${STRIPE_PAYMENT_LINK}"><img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
 <p>If nothing happens, use the button. Direct: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
-<p>After payment, download: <a href="${CFO_ZIP}">CFO kit</a> · <a href="${COO_ZIP}">COO kit</a> · <a href="${CTO_ZIP}">CTO kit</a> · <a href="${CISO_ZIP}">CISO kit</a>.</p>
+<p>After payment, download: <a href="${CFO_ZIP}">CFO kit</a> · <a href="${COO_ZIP}">COO kit</a> · <a href="${CTO_ZIP}">CTO kit</a> · <a href="${CISO_ZIP}">CISO kit</a> · <a href="${ETHICS_ZIP}">Ethics Check kit</a>.</p>
 <p>Also: <a href="https://store.3labs.io">store.3labs.io</a> · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
 <script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
@@ -2491,6 +2503,25 @@ ${cardFallbackHtml()}
 <p><a href="${STRIPE_CISO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p>After payment, download: <a href="${CISO_ZIP}">Fractional-CISO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/ciso/">csuite/ciso</a>.</p>
 <script>location.replace(${JSON.stringify(STRIPE_CISO_LINK)});</script>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/ethics' || url.pathname === '/v1/pay/ethics.uri')) {
+      if (url.pathname === '/v1/pay/ethics.uri' || wantsUriList(request)) return uriListResponse(STRIPE_ETHICS_LINK);
+      if (wantsJson(request)) {
+        return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_ETHICS_LINK, url: STRIPE_ETHICS_LINK, zip: ETHICS_ZIP, product: 'ethics-check-launch-kit' }, { Link: paymentLinkHeader() }, true);
+      }
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Ethics Check Kit — Fieldproof</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_ETHICS_LINK}">
+<link rel="payment" href="${STRIPE_ETHICS_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Buy the $42 Fieldproof Ethics Check Launch Kit</h1>
+<p>Opening checkout. Six editable Word templates for the seven canons, inclusion and voice, human-LLM team dynamics, team-size design, and a Friday ethics review. Canons stay free at GET /v1/canons. One $42 payment meets the first-income bar.</p>
+<p style="font-size:1.25rem;font-weight:700">$42</p>
+<p><a href="${STRIPE_ETHICS_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>After payment, download: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/ethics/">ethics</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_ETHICS_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
