@@ -1621,12 +1621,11 @@ function payIndexHtml(origin, btc = null) {
     ? `${sats} sats (~$${GOAL_USD}${price ? ` at $${price}/BTC` : ''})`
     : `~$42 of BTC`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}"></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay Fieldproof $42</h1>
-<p>Opening checkout. Fieldproof is a fractional C-suite for agentic teams. One payment. No Fieldproof account.</p>
+<p>Every rail below is live. This page stays here so you can pick one. Fieldproof is a fractional C-suite for agentic teams. One payment. No Fieldproof account.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>If nothing happens, use the button. Card, Cash App, Link, US bank debit, Klarna, Afterpay, or Affirm.</p>
+<p>Card, Cash App, Link, US bank debit, Klarna, Afterpay, or Affirm. Card checkout delivers the Ethics Check and C-suite Word ZIPs, not the Governance Pack.</p>
 <p>Other ways:</p>
 <ul>
 <li><a href="${origin}/v1/pay/card">Card checkout page</a> — opens the same $42 Stripe link</li>
@@ -1651,7 +1650,6 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/x402">x402 agent docs</a> — per-check quote</li>
 </ul>
 <p>More: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
 }
 
@@ -1691,11 +1689,10 @@ function invoiceHtml(origin, payTo, btc = null) {
   const btcUri = btcBip21(sats);
   const btcLabel = sats ? `${sats} sats (~$${GOAL_USD})` : `~$42 of BTC`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof invoice</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42</h1>
-<p>Opening checkout. This invoice is $42. One payment meets the first-income bar.</p>
+<p>This invoice is $42. This page stays here so you can pick a rail. One payment meets the first-income bar.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 ${walletPayControls(payTo, usdcUri)}
 <p>Other rails on this invoice:</p>
@@ -1708,8 +1705,7 @@ ${walletPayControls(payTo, usdcUri)}
 <li><a href="${GUMROAD_TIP}">$42 tip jar</a></li>
 <li><a href="${origin}/v1/sponsor">42 USDC x402 POST /v1/sponsor</a></li>
 </ul>
-<p>JSON: <a href="/v1/invoice">GET /v1/invoice</a> without HTML Accept. Agents: Accept text/uri-list.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>JSON: <a href="/v1/invoice">GET /v1/invoice</a> without HTML Accept. Agents: Accept text/uri-list. Scan: <a href="${origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
 }
 
