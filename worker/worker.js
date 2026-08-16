@@ -724,6 +724,16 @@ function openApiSpec(origin) {
           responses: { 302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` } },
         },
       },
+      '/v1/offer': {
+        get: {
+          operationId: 'offer42',
+          summary: 'Canonical $42 quote. HTML 302s to Stripe; otherwise HTTP 402 with 42 USDC plus card fallback.',
+          responses: {
+            302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` },
+            402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
+          },
+        },
+      },
       '/v1/sponsor': {
         post: {
           operationId: 'sponsor42',
@@ -1003,6 +1013,14 @@ function checkouts(c, origin, btc = null) {
       network: c.network,
       meets_first_42: true,
       note: 'unpaid GET or POST /v1/sponsor quotes 42 USDC on Base; one settlement meets the bar',
+    },
+    {
+      id: 'offer-42',
+      url: `${origin}/v1/offer`,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'canonical $42 quote: browsers 302 to Stripe; agents get a 402 with USDC plus card fallback',
     },
     {
       id: 'usdc-direct',
@@ -1398,6 +1416,7 @@ export default {
         `${url.origin}/v1/pay`,
         `${url.origin}/v1/pay/card`,
         `${url.origin}/v1/sponsor`,
+        `${url.origin}/v1/offer`,
         `${url.origin}/mcp`,
         `${url.origin}/.well-known/x402`,
         `${url.origin}/.well-known/pay`,
@@ -1925,6 +1944,20 @@ ${cardFallbackHtml()}
         {},
         c.free
       );
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/offer' || url.pathname === '/v1/offer/')) {
+      if (wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
+      const quote = sponsorCfg(c);
+      if (c.free) {
+        return json(
+          200,
+          { price_usd: 42, card: STRIPE_PAYMENT_LINK, fallback: stripeFallbackOffer() },
+          { Link: paymentLinkHeader() },
+          true
+        );
+      }
+      return paymentRequired402(quote, url.href, url.origin);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/sponsor') {
