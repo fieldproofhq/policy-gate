@@ -1385,7 +1385,10 @@ function satsForGoal(priceUsd, goalUsd = GOAL_USD) {
   return Math.ceil((goal / price) * 1e8);
 }
 
-async function fetchJson(fetchImpl, url, timeoutMs = 4000) {
+const defaultFetch = fetch;
+let btcCache = null;
+
+async function fetchJson(fetchImpl, url, timeoutMs = 2500) {
   const signal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
     ? AbortSignal.timeout(timeoutMs)
     : undefined;
@@ -1395,6 +1398,8 @@ async function fetchJson(fetchImpl, url, timeoutMs = 4000) {
 }
 
 async function observeBtc(fetchImpl = fetch) {
+  const useCache = fetchImpl === defaultFetch;
+  if (useCache && btcCache && Date.now() - btcCache.at < 30000) return btcCache.value;
   const addressSources = [
     `https://mempool.space/api/address/${BTC_ADDRESS}`,
     `https://blockstream.info/api/address/${BTC_ADDRESS}`,
@@ -1437,13 +1442,15 @@ async function observeBtc(fetchImpl = fetch) {
   const revenueUsd = Number.isFinite(sats) && Number.isFinite(priceUsd)
     ? Number(((sats / 1e8) * priceUsd).toFixed(6))
     : (sats === 0 ? 0 : null);
-  return {
+  const observed = {
     address: BTC_ADDRESS,
     sats: Number.isFinite(sats) ? sats : null,
     priceUsd: Number.isFinite(priceUsd) ? priceUsd : null,
     revenueUsd,
     satsFor42: satsForGoal(priceUsd),
   };
+  if (useCache) btcCache = { at: Date.now(), value: observed };
+  return observed;
 }
 
 async function readUsdcBalance(address, fetchImpl = fetch) {
