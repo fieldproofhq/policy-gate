@@ -1,7 +1,7 @@
 // Test harness: engine cases + HTTP handler (free mode + paid 402 shape).
 // Run: node test-worker.mjs   (Node >= 18; uses global Request/Response)
 import assert from 'node:assert';
-import worker, { check, globMatch, DEFAULT_POLICY, assessReceived } from './worker.js';
+import worker, { check, globMatch, DEFAULT_POLICY, assessReceived, satsForGoal } from './worker.js';
 
 const policy = DEFAULT_POLICY;
 
@@ -61,18 +61,75 @@ assert.ok(Array.isArray(info.checkouts));
 const pack = info.checkouts.find((o) => o.id === 'governance-pack');
 assert.equal(pack.amount_usd, 59);
 assert.equal(pack.meets_first_42, true);
-assert.match(pack.url, /agentic-ai-governance-pack/);
+assert.match(pack.url, /\/v1\/pay\/pack/);
+res = await call(freeEnv, 'GET', '/v1/pay/pack');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const packPage = await res.text();
+assert.match(packPage, /\$59/);
+assert.match(packPage, /agentic-ai-governance-pack\?wanted=true/);
 res = await call(freeEnv, 'GET', '/v1/checkouts');
 assert.strictEqual(res.status, 200);
 const listed = await res.json();
 assert.ok(listed.checkouts.some((o) => o.id === 'tip-jar' && o.url.includes('tip-jar')));
+const tip42 = listed.checkouts.find((o) => o.id === 'tip-jar-42');
+assert.equal(tip42.amount_usd, 42);
+assert.equal(tip42.meets_first_42, true);
+assert.match(tip42.url, /\/v1\/pay\/tip-jar/);
+res = await call(freeEnv, 'GET', '/v1/pay/tip-jar');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const tipPage = await res.text();
+assert.match(tipPage, /\$42/);
+assert.match(tipPage, /tip-jar\?wanted=true/);
+const x402 = listed.checkouts.find((o) => o.id === 'x402-check');
+assert.match(x402.url, /\/v1\/pay\/x402/);
+assert.equal(x402.checks_for_42, 8400);
+res = await call({ PAY_TO: '0x07C2383008a9ed30581f27Db5531E19411c94fb3', PRICE_USD: '0.005' }, 'GET', '/v1/pay/x402');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const x402Page = await res.text();
+assert.match(x402Page, /0\.005/);
+assert.match(x402Page, /8400/);
+assert.match(x402Page, /POST \/v1\/check/);
 const usdc = listed.checkouts.find((o) => o.id === 'usdc-direct');
 assert.equal(usdc.amount_usd, 42);
 assert.equal(usdc.meets_first_42, true);
+assert.match(usdc.pay_uri, /uint256=42000000/);
+assert.match(usdc.qr_url, /create-qr-code/);
+assert.match(usdc.qr_url, /uint256%3D42000000/);
+assert.match(usdc.url, /\/v1\/pay\/usdc/);
+res = await call({ PAY_TO: '0x07C2383008a9ed30581f27Db5531E19411c94fb3' }, 'GET', '/v1/pay/usdc');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const payPage = await res.text();
+assert.match(payPage, /42 USDC/);
+assert.match(payPage, /0x07C2383008a9ed30581f27Db5531E19411c94fb3/);
+assert.match(payPage, /ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453\/transfer/);
+assert.match(payPage, /create-qr-code/);
+assert.match(payPage, /uint256%3D42000000/);
 const zelle = listed.checkouts.find((o) => o.id === 'zelle');
 assert.equal(zelle.amount_usd, 42);
 assert.equal(zelle.meets_first_42, true);
 assert.match(zelle.pay_to, /3labsio@gmail.com/);
+assert.match(zelle.url, /\/v1\/pay\/zelle/);
+res = await call(freeEnv, 'GET', '/v1/pay/zelle');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const zellePage = await res.text();
+assert.match(zellePage, /\$42/);
+assert.match(zellePage, /3labsio@gmail.com/);
+assert.match(zellePage, /Fieldproof/);
+const btc = listed.checkouts.find((o) => o.id === 'bitcoin');
+assert.match(btc.pay_to, /^bc1q/);
+assert.match(btc.url, /\/v1\/pay\/btc/);
+assert.equal(satsForGoal(63000, 42), 66667);
+res = await call(freeEnv, 'GET', '/v1/pay/btc');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const btcPage = await res.text();
+assert.match(btcPage, /bitcoin:bc1q/);
+assert.match(btcPage, /bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t/);
 
 const selfTest = assessReceived(0.005, '2026-08-16T06:30:00.000Z');
 assert.equal(selfTest.externalUsd, 0);
@@ -84,10 +141,17 @@ assert.equal(met.goalMet, true);
 
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, init) => {
-  assert.match(String(url), /mainnet\.base\.org|base\.publicnode\.com|1rpc\.io\/base/);
-  const payload = JSON.parse(init.body);
-  assert.equal(payload.method, 'eth_call');
-  return { json: async () => ({ result: '0x' + BigInt(5000).toString(16) }) };
+  const href = String(url);
+  if (/mainnet\.base\.org|base\.publicnode\.com|1rpc\.io\/base/.test(href)) {
+    const payload = JSON.parse(init.body);
+    assert.equal(payload.method, 'eth_call');
+    return { json: async () => ({ result: '0x' + BigInt(5000).toString(16) }) };
+  }
+  if (href.includes('/api/v1/prices')) return { json: async () => ({ USD: 63000 }) };
+  if (href.includes('/api/address/')) {
+    return { json: async () => ({ chain_stats: { funded_txo_sum: 0, spent_txo_sum: 0 }, mempool_stats: { funded_txo_sum: 0 } }) };
+  }
+  throw new Error('unexpected fetch ' + href);
 };
 try {
   const receiveEnv = { PAY_TO: '0x07C2383008a9ed30581f27Db5531E19411c94fb3', NETWORK: 'eip155:8453' };
@@ -97,6 +161,11 @@ try {
   assert.equal(received.externalUsd, 0);
   assert.equal(received.goalMet, false);
   assert.equal(received.selfTestUsd, 0.005);
+  assert.equal(received.sources.btcUsd, 0);
+  assert.equal(received.bitcoin.sats, 0);
+  const quoted = received.checkouts.find((o) => o.id === 'bitcoin');
+  assert.equal(quoted.amount_sats, 66667);
+  assert.equal(quoted.meets_first_42, true);
   assert.ok(received.checkouts.some((o) => o.id === 'usdc-direct' && o.meets_first_42));
 } finally {
   globalThis.fetch = realFetch;

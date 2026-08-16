@@ -300,6 +300,38 @@ const SELF_TEST_USD = 0.005;
 const GOAL_USD = 42;
 const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPCS = ['https://mainnet.base.org', 'https://base.publicnode.com', 'https://1rpc.io/base'];
+const BTC_ADDRESS = 'bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t';
+
+function satsForGoal(priceUsd, goalUsd = GOAL_USD) {
+  const price = Number(priceUsd);
+  const goal = Number(goalUsd);
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(goal) || goal <= 0) return null;
+  return Math.ceil((goal / price) * 1e8);
+}
+
+async function observeBtc(fetchImpl = fetch) {
+  const [infoRes, priceRes] = await Promise.all([
+    fetchImpl(`https://mempool.space/api/address/${BTC_ADDRESS}`),
+    fetchImpl('https://mempool.space/api/v1/prices'),
+  ]);
+  const info = await infoRes.json();
+  const prices = await priceRes.json();
+  const sats =
+    Number(info.chain_stats?.funded_txo_sum || 0) -
+    Number(info.chain_stats?.spent_txo_sum || 0) +
+    Number(info.mempool_stats?.funded_txo_sum || 0);
+  const priceUsd = Number(prices.USD);
+  const revenueUsd = Number.isFinite(sats) && Number.isFinite(priceUsd)
+    ? Number(((sats / 1e8) * priceUsd).toFixed(6))
+    : (sats === 0 ? 0 : null);
+  return {
+    address: BTC_ADDRESS,
+    sats: Number.isFinite(sats) ? sats : null,
+    priceUsd: Number.isFinite(priceUsd) ? priceUsd : null,
+    revenueUsd,
+    satsFor42: satsForGoal(priceUsd),
+  };
+}
 
 async function readUsdcBalance(address, fetchImpl = fetch) {
   const data = '0x70a08231' + address.toLowerCase().replace('0x', '').padStart(64, '0');
@@ -332,15 +364,16 @@ function assessReceived(balanceUsd, observedAt = new Date().toISOString()) {
   };
 }
 
-function checkouts(c, origin) {
+function checkouts(c, origin, btc = null) {
+  const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
   return [
     {
       id: 'governance-pack',
-      url: 'https://store.3labs.io/l/agentic-ai-governance-pack',
+      url: `${origin}/v1/pay/pack`,
       asset: 'USD',
       amount_usd: 59,
       meets_first_42: true,
-      note: 'human checkout; one sale meets the $42 external-income bar',
+      note: 'HTML pay landing then Gumroad $59 buy overlay; one sale meets the $42 bar',
     },
     {
       id: 'tip-jar',
@@ -348,36 +381,62 @@ function checkouts(c, origin) {
       asset: 'USD',
       amount_usd: null,
       meets_first_42: false,
-      note: 'pay-what-you-want; counts only if a stranger pays',
+      note: 'pay-what-you-want from $3; counts only if a stranger pays',
+    },
+    {
+      id: 'tip-jar-42',
+      url: `${origin}/v1/pay/tip-jar`,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'HTML pay landing then Gumroad tip-jar checkout; $42 suggested amount meets the bar only if a stranger pays it',
     },
     {
       id: 'x402-check',
-      url: `${origin}/v1/check`,
+      url: `${origin}/v1/pay/x402`,
       asset: 'USDC',
       amount_usd: Number(c.priceUsd),
-      pay_to: c.payTo,
+      pay_to: payTo,
       network: c.network,
+      checks_for_42: Number(c.priceUsd) > 0 ? Math.ceil(42 / Number(c.priceUsd)) : null,
       meets_first_42: false,
-      note: 'agent x402; unpaid POST quotes the public receive wallet',
+      note: 'agent x402 landing; unpaid POST /v1/check quotes the public receive wallet',
     },
     {
       id: 'usdc-direct',
-      url: c.payTo ? `https://basescan.org/address/${c.payTo}` : null,
+      url: `${origin}/v1/pay/usdc`,
       asset: 'USDC',
       amount_usd: 42,
-      pay_to: c.payTo,
+      pay_to: payTo,
       network: c.network,
+      pay_uri: `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`,
+      qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`)}`,
       meets_first_42: true,
-      note: 'already-approved public receive wallet; one 42 USDC transfer on Base meets the bar',
+      note: 'one-tap 42 USDC on Base; EIP-681 pay_uri plus scannable QR on the HTML checkout',
     },
     {
       id: 'zelle',
-      url: 'https://fieldproofhq.github.io/#support',
+      url: `${origin}/v1/pay/zelle`,
       asset: 'USD',
       amount_usd: 42,
       pay_to: '3labsio@gmail.com',
       meets_first_42: true,
-      note: 'already-approved public Zelle; memo Fieldproof',
+      note: 'send $42 via Zelle to 3labsio@gmail.com memo Fieldproof; HTML pay instructions',
+    },
+    {
+      id: 'bitcoin',
+      url: `${origin}/v1/pay/btc`,
+      asset: 'BTC',
+      amount_usd: btc?.satsFor42 && btc.priceUsd ? Number(((btc.satsFor42 / 1e8) * btc.priceUsd).toFixed(2)) : null,
+      amount_sats: btc?.satsFor42 ?? null,
+      pay_to: BTC_ADDRESS,
+      pay_uri: btc?.satsFor42
+        ? `bitcoin:${BTC_ADDRESS}?amount=${(btc.satsFor42 / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`
+        : null,
+      meets_first_42: Boolean(btc?.satsFor42),
+      note: btc?.satsFor42
+        ? `send ${btc.satsFor42} sats (~$${GOAL_USD} at quoted spot); BIP21 pay_uri plus HTML checkout`
+        : 'public P2WPKH receive; ≥$42 of BTC at spot meets the bar; observed on mempool.space',
     },
   ];
 }
@@ -627,7 +686,11 @@ export default {
             check: 'POST /v1/check',
             policies: 'GET /v1/policies',
             example: 'GET /v1/example  (free — worked verdicts from the live engine)',
-            received: 'GET /v1/received  (free — public USDC observation of PAY_TO; self-test excluded)',
+            received: 'GET /v1/received  (free — public USDC+BTC observation; self-test excluded)',
+            pay_usdc: 'GET /v1/pay/usdc  (free — one-tap 42 USDC on Base)',
+            pay_zelle: 'GET /v1/pay/zelle  (free — $42 Zelle instructions)',
+            pay_btc: 'GET /v1/pay/btc  (free — BIP21 BTC invoice for ~$42)',
+            pay_x402: 'GET /v1/pay/x402  (free — agent x402 quote and curl recipe)',
             health: 'GET /healthz',
           },
           evaluate_before_paying: 'GET /v1/example and GET /v1/policies are free and complete. Nothing about the verdict logic is hidden behind the paywall.',
@@ -645,8 +708,98 @@ export default {
       );
     }
 
+    if (request.method === 'GET' && url.pathname === '/v1/pay/x402') {
+      const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+      const price = c.priceUsd || '0.005';
+      const checks = Number(price) > 0 ? Math.ceil(42 / Number(price)) : 8400;
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Policy Gate via x402 — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Pay Policy Gate via x402</h1>
+<p>Agents pay <strong>$${price} USDC on Base</strong> per <code>POST /v1/check</code>. ${checks} paid checks equal <strong>$42</strong>. Evaluate free first: <a href="/v1/example">GET /v1/example</a>.</p>
+<p>Pay to <code>${payTo}</code> on <code>${c.network || 'eip155:8453'}</code>.</p>
+<pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${url.origin}/v1/check \\
+  -H "content-type: application/json" \\
+  -d '{"policy_id":"default-action-tiers","request":{"action":"docs.read"}}'</pre>
+<p>An unpaid POST returns <strong>HTTP 402</strong> with the x402 quote. Discovery: <a href="/.well-known/x402">/.well-known/x402</a>. After settlement, the receive wallet is observed at <a href="/v1/received">GET /v1/received</a>. The $0.005 self-test is excluded.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
+      const checkout = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $59 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Buy the $59 Governance Pack</h1>
+<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$59</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
+<p><a href="${checkout}">Open $59 checkout</a></p>
+<p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
+<p>After paying, sales show on the Gumroad dashboard and <a href="/v1/received">GET /v1/received</a> stays the on-chain observer. Self-buys do not count.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/pay/tip-jar') {
+      const checkout = 'https://fieldproof.gumroad.com/l/tip-jar?wanted=true';
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via tip jar — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Send $42 via the tip jar</h1>
+<p>The Fieldproof tip jar is pay-what-you-want from $3. Enter <strong>$42</strong> (or more) to meet the first-$42 external-income bar. Self-sends do not count.</p>
+<p><a href="${checkout}">Open tip-jar checkout</a></p>
+<p>After paying, sales show on the Gumroad dashboard. A checkout overlay is not income.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/pay/btc') {
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      const sats = btc?.satsFor42 || null;
+      const btcAmount = sats ? (sats / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '') : null;
+      const payUri = sats ? `bitcoin:${BTC_ADDRESS}?amount=${btcAmount}` : `bitcoin:${BTC_ADDRESS}`;
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Pay $42 in Bitcoin</h1>
+<p>Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public P2WPKH below. Mempool.space is the observer. Self-sends do not count.</p>
+<p><a href="${payUri}">Open in wallet (BIP21)</a></p>
+<p>Pay to:</p>
+<pre style="white-space:pre-wrap;word-break:break-all">${BTC_ADDRESS}</pre>
+<p>Explorer: <a href="https://mempool.space/address/${BTC_ADDRESS}">mempool.space</a> · after sending, check <a href="/v1/received">GET /v1/received</a>.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/pay/zelle') {
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Send $42 via Zelle</h1>
+<p>One Zelle transfer of <strong>$42 USD</strong> meets Fieldproof's first-$42 external-income bar. Zero fees. Self-sends do not count.</p>
+<p>In your US banking app, open Zelle and send:</p>
+<ul>
+<li>Amount: <strong>$42.00</strong></li>
+<li>To: <strong>3labsio@gmail.com</strong></li>
+<li>Memo: <strong>Fieldproof</strong></li>
+</ul>
+<p>After sending, the receipt is the Zelle email to 3labsio@gmail.com — not this page.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/pay/usdc') {
+      const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+      const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Pay 42 USDC on Base</h1>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong> meets Fieldproof's first-$42 external-income bar. Other networks may lose the funds.</p>
+<p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
+<p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
+<p>Pay to:</p>
+<pre style="white-space:pre-wrap;word-break:break-all">${payTo}</pre>
+<p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
+<p>After sending, check <a href="/v1/received">GET /v1/received</a>. The $0.005 self-test is excluded.</p>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/checkouts') {
-      return json(200, { checkouts: checkouts(c, url.origin) }, {}, c.free);
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      return json(200, { checkouts: checkouts(c, url.origin, btc) }, {}, c.free);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/received') {
@@ -654,8 +807,10 @@ export default {
         return json(200, { status: 'unavailable', externalUsd: null, goalUsd: GOAL_USD, goalMet: false, note: 'PAY_TO is unset', checkouts: checkouts(c, url.origin) }, {}, true);
       }
       try {
-        const balanceUsd = await readUsdcBalance(c.payTo);
+        const [balanceUsd, btc] = await Promise.all([readUsdcBalance(c.payTo), observeBtc().catch(() => null)]);
         const observed = assessReceived(balanceUsd);
+        const btcUsd = Number(btc?.revenueUsd);
+        const externalUsd = Number((observed.externalUsd + (Number.isFinite(btcUsd) && btcUsd > 0 ? btcUsd : 0)).toFixed(6));
         return json(
           200,
           {
@@ -663,8 +818,13 @@ export default {
             wallet: c.payTo,
             network: c.network,
             ...observed,
-            note: 'Public Base USDC read of the receive wallet. The $0.005 self-test is excluded. A 402 or storefront HTTP 200 is not income.',
-            checkouts: checkouts(c, url.origin),
+            externalUsd,
+            goalMet: externalUsd >= GOAL_USD,
+            remainingUsd: Math.max(0, Number((GOAL_USD - externalUsd).toFixed(6))),
+            sources: { chainUsd: observed.externalUsd, btcUsd: Number.isFinite(btcUsd) && btcUsd > 0 ? btcUsd : 0 },
+            bitcoin: btc,
+            note: 'Public Base USDC (self-test excluded) plus observed BTC on the public P2WPKH. A 402 or storefront HTTP 200 is not income.',
+            checkouts: checkouts(c, url.origin, btc),
           },
           {},
           true
@@ -850,6 +1010,13 @@ export default {
       // and CDP's validator rejects mixed dialects with a 400.
       const ver = payload.x402Version === 2 ? 2 : 1;
       const reqs = ver === 2 ? paymentRequirementsV2(c) : paymentRequirementsV1(c, url.href);
+      // The Bazaar declaration must ride on the requirements object the FACILITATOR sees,
+      // not only on the 402 we show the buyer. Two code paths built those separately here,
+      // and only the buyer-facing one carried `extensions.bazaar` — so CDP never received a
+      // declaration and never indexed the resource. Same structural bug, independently
+      // found and fixed by another operator in x402-foundation/x402#2112, who then proved a
+      // real mainnet settlement succeeds with the field present on both verify and settle.
+      reqs.extensions = bazaarExtension(url.origin);
       const verifyBody = {
         x402Version: ver,
         paymentPayload: payload,
@@ -890,4 +1057,4 @@ export default {
   },
 };
 
-export { check, validatePolicy, globMatch, DEFAULT_POLICY, assessReceived, readUsdcBalance, SELF_TEST_USD, GOAL_USD };
+export { check, validatePolicy, globMatch, DEFAULT_POLICY, assessReceived, readUsdcBalance, satsForGoal, SELF_TEST_USD, GOAL_USD };
