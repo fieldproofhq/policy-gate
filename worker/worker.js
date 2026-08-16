@@ -487,6 +487,47 @@ export default {
       return json(200, { checkouts: checkouts(c, url.origin) }, {}, c.free);
     }
 
+    // Discovery manifest. Crawlers and directories look here first; without it a service
+    // is invisible to anything that does not already know the exact POST route. Rejected
+    // by agent-tools.cloud on 2026-08-16 for precisely this: "no /.well-known/x402 and no
+    // 402 challenge from endpoint" — their prober GETs, and GET used to 404.
+    if (request.method === 'GET' && url.pathname === '/.well-known/x402') {
+      return json(
+        200,
+        {
+          x402Version: 2,
+          serviceName: 'Fieldproof Policy Gate',
+          description:
+            'Deterministic allow / require_approval / deny verdicts for proposed agent actions. Same input, same verdict, with the matched rule and rationale returned so it is auditable.',
+          tags: ['governance', 'policy', 'safety', 'agents'],
+          resources: [
+            {
+              url: `${url.origin}/v1/check`,
+              method: 'POST',
+              mimeType: 'application/json',
+              description: 'Evaluate a proposed action against a policy and return a verdict',
+              accepts: c.free ? [] : [paymentRequirementsV2(c)],
+              free: c.free,
+              evaluate_before_paying: [`${url.origin}/v1/example`, `${url.origin}/v1/policies`],
+            },
+          ],
+          docs: 'https://github.com/fieldproofhq/policy-gate',
+          contact: 'https://github.com/fieldproofhq/policy-gate/issues',
+        },
+        {},
+        true
+      );
+    }
+
+    // A GET on the paid route advertises the price rather than 404ing. Probers, directories
+    // and curious humans all arrive this way, and a 404 tells them the service does not exist.
+    if (request.method === 'GET' && url.pathname === '/v1/check') {
+      if (c.free) {
+        return json(200, { free: true, usage: 'POST this endpoint with { policy_id | policy, request }' }, {}, true);
+      }
+      return paymentRequired402(c, url.href, url.origin);
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/policies') {
       // The ruleset is documentation, not the product. What is sold is the evaluation —
       // deterministic, versioned, and auditable. Returning only opaque ids meant nobody

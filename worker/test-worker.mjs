@@ -165,6 +165,20 @@ assert.ok(pol.definitions['default-action-tiers'].rules.length >= 10, 'full rule
 res = await call(paidEnv, 'POST', '/v1/check', { policy_id: 'default-action-tiers', request: { action: 'x.read' } });
 assert.strictEqual(res.status, 402, 'the product itself is still paid');
 
+/* 4c — discoverability. A directory rejected this service on 2026-08-16 with
+   "no /.well-known/x402 and no 402 challenge from endpoint", because probers GET and GET
+   used to 404. Both paths are now asserted so the service cannot go invisible again. */
+res = await call(paidEnv, 'GET', '/.well-known/x402');
+assert.strictEqual(res.status, 200, 'discovery manifest must be served');
+const wk = await res.json();
+assert.strictEqual(wk.x402Version, 2);
+assert.ok(wk.resources?.length >= 1, 'manifest lists at least one resource');
+assert.ok(wk.resources[0].url.endsWith('/v1/check'), 'manifest points at the paid route');
+assert.strictEqual(wk.resources[0].accepts[0].payTo, paidEnv.PAY_TO, 'manifest quotes the real payee');
+
+res = await call(paidEnv, 'GET', '/v1/check');
+assert.strictEqual(res.status, 402, 'GET on the paid route advertises price, never 404');
+
 /* 5 — CORS preflight */
 res = await worker.fetch(new Request(base + '/v1/check', { method: 'OPTIONS' }), freeEnv);
 assert.strictEqual(res.status, 204);
