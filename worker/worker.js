@@ -817,6 +817,55 @@ function npmFunding() {
   ];
 }
 
+function webfingerJrd(origin, resource) {
+  const host = new URL(origin).host;
+  return {
+    subject: resource || `acct:pay@${host}`,
+    aliases: ['https://fieldproofhq.github.io/offer/', `${origin}/v1/invoice`],
+    properties: {
+      'http://schema.org/price': '42.00',
+      'http://schema.org/priceCurrency': 'USD',
+    },
+    links: [
+      { rel: 'payment', href: STRIPE_PAYMENT_LINK, type: 'text/html' },
+      { rel: 'http://webfinger.net/rel/profile-page', href: 'https://fieldproofhq.github.io/' },
+      { rel: 'https://fieldproofhq.github.io/rel/invoice', href: `${origin}/v1/invoice`, type: 'application/json' },
+      { rel: 'https://fieldproofhq.github.io/rel/card-uri', href: `${origin}/v1/pay/card.uri`, type: 'text/uri-list' },
+      { rel: 'https://fieldproofhq.github.io/rel/usdc-uri', href: `${origin}/v1/pay/usdc.uri`, type: 'text/uri-list' },
+      { rel: 'https://fieldproofhq.github.io/rel/btc-uri', href: `${origin}/v1/pay/btc.uri`, type: 'text/uri-list' },
+      { rel: 'https://fieldproofhq.github.io/rel/zelle-uri', href: `${origin}/v1/pay/zelle.uri`, type: 'text/uri-list' },
+    ],
+  };
+}
+
+function webfingerKnown(origin, resource) {
+  const host = new URL(origin).host;
+  const known = new Set([
+    `acct:pay@${host}`,
+    'acct:3labsio@gmail.com',
+    origin,
+    `${origin}/`,
+    `${origin}/v1/invoice`,
+    'https://fieldproofhq.github.io',
+    'https://fieldproofhq.github.io/',
+    'https://fieldproofhq.github.io/offer/',
+    'https://store.3labs.io',
+    'https://store.3labs.io/',
+  ]);
+  return known.has(resource);
+}
+
+function hostMetaXml(origin) {
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">',
+    `  <Link rel="lrdd" type="application/jrd+json" template="${origin}/.well-known/webfinger?resource={uri}"/>`,
+    `  <Link rel="payment" href="${STRIPE_PAYMENT_LINK}"/>`,
+    '</XRD>',
+    '',
+  ].join('\n');
+}
+
 function humansTxt(origin) {
   return [
     '/* TEAM */',
@@ -870,6 +919,16 @@ function openApiSpec(origin) {
     servers: [{ url: origin }],
     externalDocs: { description: 'Pay $42 with card', url: STRIPE_PAYMENT_LINK },
     paths: {
+      '/.well-known/webfinger': {
+        get: {
+          operationId: 'webfinger',
+          summary: 'RFC 7033 WebFinger. Query resource=acct:pay@{host} or acct:3labsio@gmail.com for $42 payment links.',
+          responses: {
+            200: { description: 'application/jrd+json with rel=payment' },
+            400: { description: 'resource query is required' },
+          },
+        },
+      },
       '/humans.txt': {
         get: {
           operationId: 'humansTxt',
@@ -1807,6 +1866,8 @@ export default {
         `${url.origin}/.well-known/security.txt`,
         `${url.origin}/humans.txt`,
         `${url.origin}/.well-known/humans.txt`,
+        `${url.origin}/.well-known/webfinger`,
+        `${url.origin}/.well-known/host-meta`,
         `${url.origin}/.well-known/llms.txt`,
         `${url.origin}/llms-full.txt`,
         `${url.origin}/package.json`,
@@ -1861,6 +1922,7 @@ export default {
         `- npm funding (package.json): ${url.origin}/package.json`,
         `- security.txt: ${url.origin}/.well-known/security.txt`,
         `- humans.txt: ${url.origin}/humans.txt`,
+        `- WebFinger: ${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2247,6 +2309,35 @@ ${cardFallbackHtml()}
       return json(200, mcpDiscovery(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
+    if (request.method === 'GET' && url.pathname === '/.well-known/webfinger') {
+      const resource = url.searchParams.get('resource');
+      if (!resource) {
+        return json(400, { error: 'resource_required', example: `${url.origin}/.well-known/webfinger?resource=acct:pay@${url.host}` }, { Link: paymentLinkHeader() }, true);
+      }
+      if (!webfingerKnown(url.origin, resource)) {
+        return json(404, { error: 'unknown_resource', resource }, { Link: paymentLinkHeader() }, true);
+      }
+      return new Response(JSON.stringify(webfingerJrd(url.origin, resource), null, 2), {
+        status: 200,
+        headers: {
+          'content-type': 'application/jrd+json; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/.well-known/host-meta' || url.pathname === '/.well-known/host-meta.xml')) {
+      return new Response(hostMetaXml(url.origin), {
+        status: 200,
+        headers: {
+          'content-type': 'application/xrd+xml; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
     if (
       request.method === 'GET' &&
       (url.pathname === '/humans.txt' || url.pathname === '/.well-known/humans.txt')
@@ -2344,6 +2435,7 @@ ${cardFallbackHtml()}
             tip_uri: `${url.origin}/v1/pay/tip-jar.uri`,
             security: `${url.origin}/.well-known/security.txt`,
             humans: `${url.origin}/humans.txt`,
+            webfinger: `${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
           },
         },
         {},
