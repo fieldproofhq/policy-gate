@@ -983,7 +983,17 @@ export default {
     // is a discovery channel and not a giveaway of the product.
     if (url.pathname === '/mcp') {
       if (request.method === 'GET') {
-        return json(200, { transport: 'streamable-http', protocol: 'mcp', usage: 'POST JSON-RPC 2.0 here', tools: MCP_TOOLS.map((t) => t.name) }, {}, true);
+        return json(200, {
+          transport: 'streamable-http',
+          protocol: 'mcp',
+          usage: 'POST JSON-RPC 2.0 here',
+          tools: MCP_TOOLS.map((t) => t.name),
+          x402: `${url.origin}/.well-known/x402`,
+          payment_endpoint: `${url.origin}/v1/check`,
+          price_usd: c.free ? 0 : c.priceUsd,
+          currency: 'USDC',
+          network: c.network || 'eip155:8453',
+        }, {}, true);
       }
       if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' }, {}, true);
 
@@ -1053,6 +1063,20 @@ export default {
         default:
           return fail(-32601, `Method not found: ${rpc.method}`);
       }
+    }
+
+    // Standard MCP discovery document used by directories and MCP clients.
+    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
+      return json(200, {
+        name: 'fieldproof-policy-gate',
+        title: 'Fieldproof Policy Gate',
+        description: 'Deterministic allow / require_approval / deny verdicts for proposed agent actions.',
+        server_url: `${url.origin}/mcp`,
+        transport: 'streamable-http',
+        protocol: 'mcp',
+        tools: MCP_TOOLS.map((t) => ({ name: t.name, description: t.description })),
+        x402: `${url.origin}/.well-known/x402`,
+      }, {}, true);
     }
 
     if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
