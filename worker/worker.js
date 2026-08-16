@@ -552,6 +552,12 @@ function wantsJson(request) {
   return /application\/json/i.test(request.headers.get('accept') || '');
 }
 
+const ZELLE_EMAIL = '3labsio@gmail.com';
+
+function zelleMailto() {
+  return `mailto:${ZELLE_EMAIL}?subject=Fieldproof%20%2442&body=Send%20%2442.00%20via%20Zelle%20to%203labsio%40gmail.com%20memo%20Fieldproof.`;
+}
+
 function uriListResponse(uri) {
   return new Response(`${uri}\n`, {
     status: 200,
@@ -606,7 +612,8 @@ function fieldproofInvoice(origin, payTo, btc) {
       },
       {
         scheme: 'zelle',
-        payTo: '3labsio@gmail.com',
+        payTo: ZELLE_EMAIL,
+        uri: zelleMailto(),
         amountUsd: GOAL_USD,
         memo: 'Fieldproof',
       },
@@ -865,6 +872,13 @@ function openApiSpec(origin) {
           operationId: 'payUsdcUri',
           summary: 'text/uri-list EIP-681 invoice for 42 USDC on Base. Open in any wallet that understands ethereum: URIs.',
           responses: { 200: { description: 'text/uri-list; one ethereum: transfer URI' } },
+        },
+      },
+      '/v1/pay/zelle.uri': {
+        get: {
+          operationId: 'payZelleUri',
+          summary: 'text/uri-list mailto invoice for $42 via Zelle to 3labsio@gmail.com',
+          responses: { 200: { description: 'text/uri-list; one mailto: URI' } },
         },
       },
       '/v1/pay/btc.uri': {
@@ -1251,9 +1265,20 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/zelle`,
       asset: 'USD',
       amount_usd: 42,
-      pay_to: '3labsio@gmail.com',
+      pay_to: ZELLE_EMAIL,
+      pay_uri: zelleMailto(),
       meets_first_42: true,
-      note: 'send $42 via Zelle to 3labsio@gmail.com memo Fieldproof; HTML pay instructions',
+      note: 'send $42 via Zelle to 3labsio@gmail.com memo Fieldproof; HTML pay instructions plus mailto URI',
+    },
+    {
+      id: 'zelle-uri',
+      url: `${origin}/v1/pay/zelle.uri`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_to: ZELLE_EMAIL,
+      pay_uri: zelleMailto(),
+      meets_first_42: true,
+      note: 'text/uri-list mailto invoice for $42 Zelle; agents open the first URI',
     },
     {
       id: 'bitcoin',
@@ -1664,6 +1689,7 @@ export default {
         `${url.origin}/v1/invoice`,
         `${url.origin}/v1/pay/usdc.uri`,
         `${url.origin}/v1/pay/btc.uri`,
+        `${url.origin}/v1/pay/zelle.uri`,
         `${url.origin}/mcp`,
         `${url.origin}/skills/pay/SKILL.md`,
         `${url.origin}/.well-known/skills.json`,
@@ -1738,6 +1764,7 @@ export default {
         `- Bitcoin: ${url.origin}/v1/pay/btc`,
         `- Bitcoin BIP-21 (text/uri-list): ${url.origin}/v1/pay/btc.uri`,
         `- Zelle $42 to 3labsio@gmail.com: ${url.origin}/v1/pay/zelle`,
+        `- Zelle mailto (text/uri-list): ${url.origin}/v1/pay/zelle.uri`,
         '',
         'Observer: GET /v1/received. A 402 or HTTP 200 is not income.',
         '',
@@ -1914,7 +1941,29 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/zelle.uri' || url.pathname === '/v1/pay/zelle.txt')) {
+      return uriListResponse(zelleMailto());
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/zelle') {
+      const payUri = zelleMailto();
+      if (wantsUriList(request)) return uriListResponse(payUri);
+      if (wantsJson(request)) {
+        return json(
+          200,
+          {
+            scheme: 'zelle',
+            asset: 'USD',
+            amountUsd: GOAL_USD,
+            payTo: ZELLE_EMAIL,
+            memo: 'Fieldproof',
+            uri: payUri,
+            card: STRIPE_PAYMENT_LINK,
+          },
+          { Link: paymentLinkHeader() },
+          true
+        );
+      }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
 <p>Send <strong>$42 USD</strong> via Zelle. Zero fees.</p>
@@ -1925,7 +1974,7 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
 <li>Memo: <strong>Fieldproof</strong></li>
 </ul>
 ${copyPayControls('3labsio@gmail.com', '42.00', 'Copy email', 'Copy $42')}
-<p><a href="mailto:3labsio@gmail.com">Open in mail</a></p>
+<p><a href="${payUri}">Open in mail</a></p>
 ${cardFallbackHtml()}
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
@@ -2107,6 +2156,7 @@ ${cardFallbackHtml()}
             btc: `${url.origin}/v1/pay/btc`,
             btc_uri: `${url.origin}/v1/pay/btc.uri`,
             zelle: `${url.origin}/v1/pay/zelle`,
+            zelle_uri: `${url.origin}/v1/pay/zelle.uri`,
             store: 'https://store.3labs.io',
           },
         },
@@ -2345,7 +2395,7 @@ ${cardFallbackHtml()}
       try { btc = await observeBtc(); } catch { btc = null; }
       const invoice = fieldproofInvoice(url.origin, payTo, btc);
       if (wantsUriList(request)) {
-        const lines = [STRIPE_PAYMENT_LINK, invoice.methods.find((m) => m.scheme === 'eip681')?.uri, invoice.methods.find((m) => m.scheme === 'bip21')?.uri].filter(Boolean);
+        const lines = [STRIPE_PAYMENT_LINK, invoice.methods.find((m) => m.scheme === 'eip681')?.uri, invoice.methods.find((m) => m.scheme === 'bip21')?.uri, invoice.methods.find((m) => m.scheme === 'zelle')?.uri].filter(Boolean);
         return uriListResponse(lines.join('\n'));
       }
       if (wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
