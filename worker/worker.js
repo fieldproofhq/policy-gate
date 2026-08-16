@@ -2136,6 +2136,14 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/llms.txt' || url.pathname === '/.well-known/llms.txt')) {
+      if (url.pathname === '/llms.txt' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const body = [
         '# Fieldproof',
         '',
@@ -2155,6 +2163,14 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/llms-full.txt' || url.pathname === '/.well-known/llms-full.txt')) {
+      if (url.pathname === '/llms-full.txt' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const body = [
         '# Fieldproof — every live $42 checkout',
         '',
@@ -2687,6 +2703,14 @@ ${cardFallbackHtml()}
       request.method === 'GET' &&
       (url.pathname === '/humans.txt' || url.pathname === '/.well-known/humans.txt')
     ) {
+      if (url.pathname === '/humans.txt' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return new Response(humansTxt(url.origin), {
         status: 200,
         headers: {
@@ -2701,6 +2725,14 @@ ${cardFallbackHtml()}
       request.method === 'GET' &&
       (url.pathname === '/.well-known/security.txt' || url.pathname === '/security.txt')
     ) {
+      if (url.pathname === '/security.txt' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return new Response(securityTxt(url.origin), {
         status: 200,
         headers: {
