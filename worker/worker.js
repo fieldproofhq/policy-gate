@@ -525,11 +525,39 @@ export default {
             request: s.request,
             verdict: check(DEFAULT_POLICY, s.request),
           })),
+          // The question a buyer actually has is not "what is your policy?" but "can I
+          // express MINE?". Showing our ruleset alone never answers it, so this proves
+          // bring-your-own works — again on the live engine, not in prose.
+          bring_your_own_policy: (() => {
+            const yours = {
+              version: '1.0',
+              name: 'your-policy',
+              default: 'require_approval',
+              tiers: { 0: { decision: 'allow', label: 'safe' }, 3: { decision: 'deny', label: 'never' } },
+              rules: [
+                { id: 'your-reads-are-fine', match: { action: 'db.read' }, tier: 0, rationale: 'Your rule, your wording.' },
+                { id: 'never-touch-prod', match: { action: 'prod.**' }, tier: 3, rationale: 'Your call, enforced identically.' },
+              ],
+            };
+            return {
+              note: 'Send any policy document inline as "policy" — you are not limited to ours, and nothing about your policy is stored.',
+              policy: yours,
+              results: [
+                { request: { action: 'db.read' }, verdict: check(yours, { action: 'db.read' }) },
+                { request: { action: 'prod.deploy' }, verdict: check(yours, { action: 'prod.deploy' }) },
+                { request: { action: 'anything.else' }, verdict: check(yours, { action: 'anything.else' }) },
+              ],
+            };
+          })(),
           try_it: {
             endpoint: 'POST /v1/check',
             body: { policy_id: 'default-action-tiers', request: { action: 'payments.send', params: { amount_usd: 20 } } },
             price_usd: c.priceUsd,
             protocol: c.free ? 'free mode' : 'x402 (USDC on Base)',
+          },
+          for_humans: {
+            note: 'Writing these policies by hand is the slow part. The templates and the full governance pack are at the checkout below.',
+            checkouts: 'GET /v1/checkouts',
           },
         },
         {},

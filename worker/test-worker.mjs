@@ -142,6 +142,20 @@ const decisions = new Set(ex.examples.map((e) => e.verdict.decision));
 assert.ok(decisions.has('allow') && decisions.has('require_approval') && decisions.has('deny'),
   'examples must include a denial, not only happy paths');
 
+/* bring-your-own-policy: the buyer's real question is whether they can express THEIR rules.
+   The demo must use a policy that is genuinely not ours — different default included — or it
+   proves nothing. */
+const byo = ex.bring_your_own_policy;
+assert.ok(byo && byo.policy && Array.isArray(byo.results), 'bring-your-own demo present');
+assert.notStrictEqual(byo.policy.default, DEFAULT_POLICY.default, 'demo policy must differ from ours, default included');
+assert.ok(byo.results.length >= 3, 'several outcomes shown');
+for (const r of byo.results) {
+  const live = check(byo.policy, r.request);
+  assert.strictEqual(r.verdict.decision, live.decision, 'byo verdict computed by the live engine');
+}
+/* and it must show the custom default actually applying, not just matched rules */
+assert.ok(byo.results.some((r) => r.verdict.default_applied === true), 'the custom default must be demonstrated');
+
 res = await call(paidEnv, 'GET', '/v1/policies');
 const pol = await res.json();
 assert.ok(pol.definitions, 'policy definitions are public, not just ids');
