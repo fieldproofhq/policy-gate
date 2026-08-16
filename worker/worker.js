@@ -1101,15 +1101,17 @@ export default {
             protocol: 'mcp',
             usage: 'POST JSON-RPC 2.0 here',
             name: 'Fieldproof Policy Gate',
-            description: 'Deterministic policy verdicts plus one 42 USDC x402 sponsor checkout.',
+            description: 'Deterministic policy verdicts plus one $42 checkout (USDC x402 or card).',
             price_usd: 42,
             currency: 'USDC',
             network: 'base',
             sponsor: `${url.origin}/v1/sponsor`,
             store: 'https://store.3labs.io',
+            fallback: stripeFallbackOffer(),
+            card: STRIPE_PAYMENT_LINK,
             tools: MCP_TOOLS.map((t) => t.name),
           },
-          {},
+          { Link: paymentLinkHeader() },
           true
         );
       }
@@ -1127,7 +1129,7 @@ export default {
             capabilities: { tools: {} },
             serverInfo: { name: 'fieldproof-policy-gate', version: '0.2' },
             instructions:
-              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check quotes $0.005/check; first_42_sponsor quotes one 42 USDC settlement that meets the first-$42 bar.',
+              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check quotes $0.005/check; first_42_sponsor quotes 42 USDC or the Stripe card fallback.url. One $42 payment meets the first-$42 bar.',
           });
         case 'notifications/initialized':
           return new Response(null, { status: 202, headers: corsHeaders() });
