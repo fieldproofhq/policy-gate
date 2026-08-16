@@ -146,6 +146,18 @@ const DEFAULT_POLICY = {
   rules: [
     { id: 'read-anything', match: { action: '*.read' }, tier: 0, rationale: 'Reads are tier 0: no side effects.' },
     { id: 'list-search', match: { action: '*.list' }, tier: 0 },
+    { id: 'vault-list-names', match: { action: 'vault.opaque.list' }, tier: 0, rationale: 'Listing vault names is not a secret read.' },
+    { id: 'domain-inventory', match: { action: 'domain.inventory' }, tier: 0, rationale: 'Read-only domain inventory is separate from DNS or website writes.' },
+    { id: 'vault-opaque-write', match: { action: 'vault.opaque.write' }, tier: 1, rationale: 'Write a secret into KeePass or the OS store. The value never enters the mesh.' },
+    { id: 'vault-opaque-use', match: { action: 'vault.opaque.use' }, tier: 1, rationale: 'Invoke a secret by opaque reference. The agent never sees the value.' },
+    { id: 'connector-invoke', match: { action: 'connector.invoke' }, tier: 1, rationale: 'Approved connectors may be invoked. Fail closed on revoke, expiry, or missing scope.' },
+    { id: 'dns-write', match: { action: 'dns.write' }, tier: 1, rationale: 'DNS writes need capability, scope, diff, and verification. Separate from website writes.' },
+    { id: 'website-create', match: { action: 'website.create' }, tier: 1 },
+    { id: 'website-update', match: { action: 'website.update' }, tier: 1 },
+    { id: 'account-create-mesh', match: { action: 'account.create.mesh' }, tier: 1, rationale: 'Service accounts created for the mesh are for the mesh to operate.' },
+    { id: 'no-secret-read', match: { action: 'vault.opaque.read' }, tier: 3, rationale: 'Secret values must never be retrieved into the mesh.' },
+    { id: 'no-secret-expose', match: { action: 'secret.expose' }, tier: 3, rationale: 'Secret values must never appear in prompts, logs, files, or receipts.' },
+    { id: 'no-browser-extract', match: { action: 'auth.browser.**' }, tier: 3, rationale: 'Browser password extraction remains prohibited.' },
     {
       id: 'small-payments-need-approval',
       match: { action: 'payments.send', where: [{ param: 'amount_usd', lte: 50 }] },
@@ -165,7 +177,7 @@ const DEFAULT_POLICY = {
       rationale: 'Payment with unspecified amount: treat as worst case.',
     },
     { id: 'no-deletes', match: { action: '**.delete' }, tier: 3, rationale: 'Agents never delete data.' },
-    { id: 'no-credentials', match: { action: 'auth.**' }, tier: 3, rationale: 'Credential and account operations are human-only.' },
+    { id: 'no-credentials', match: { action: 'auth.**' }, tier: 3, rationale: 'Raw credential values stay out of the mesh. Opaque vault and connector use is a different action family.' },
     { id: 'content-updates-ok', match: { action: 'content.update' }, tier: 1, rationale: 'Content edits are versioned and reversible.' },
     {
       id: 'outbound-messages-first-contact',
@@ -2883,12 +2895,10 @@ ${cardFallbackHtml()}
       }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay $42 — card or 42 USDC</h1>
-<p>Opening card checkout. Or stay and send <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<h1>Pay 42 USDC on Base</h1>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds. Scan the QR or pay in this browser.</p>
 ${walletPayControls(payTo, payUri)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
@@ -2897,7 +2907,6 @@ ${walletPayControls(payTo, payUri)}
 ${copyPayControls(payTo, payUri)}
 ${cardFallbackHtml()}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
