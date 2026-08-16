@@ -1221,6 +1221,7 @@ export default {
   -H "content-type: application/json" \\
   -d '{"policy_id":"default-action-tiers","request":{"action":"docs.read"}}'</pre>
 <p>After settlement, check <a href="/v1/received">GET /v1/received</a>.</p>
+${cardFallbackHtml()}
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }

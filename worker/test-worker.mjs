@@ -188,6 +188,8 @@ assert.match(x402Page, /\/v1\/sponsor/);
 assert.match(x402Page, /0\.005/);
 assert.match(x402Page, /8400/);
 assert.match(x402Page, /POST \/v1\/check/);
+assert.match(x402Page, /Pay \$42 with card/);
+assert.match(x402Page, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 const sponsorOffer = listed.checkouts.find((o) => o.id === 'x402-sponsor-42');
 assert.equal(sponsorOffer.amount_usd, 42);
 assert.equal(sponsorOffer.meets_first_42, true);
