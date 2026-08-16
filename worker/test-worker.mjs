@@ -143,6 +143,7 @@ assert.strictEqual(res.status, 200);
 assert.match(res.headers.get('content-type'), /text\/html/);
 const payIndex = await res.text();
 assert.match(payIndex, /Pay Fieldproof \$42/);
+assert.match(payIndex, /rel="payment"/);
 assert.match(payIndex, /Card first/);
 assert.match(payIndex, /\$42 tip jar/);
 assert.match(payIndex, /\$42 Governance Pack/);

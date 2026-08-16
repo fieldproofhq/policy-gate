@@ -753,7 +753,7 @@ function payIndexHtml(origin, btc = null) {
   const btcLabel = sats
     ? `${sats} sats (~$${GOAL_USD}${price ? ` at $${price}/BTC` : ''})`
     : `~$42 of BTC`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title><link rel="payment" href="${STRIPE_PAYMENT_LINK}"></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
 <p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
 <p>Card first:</p>
