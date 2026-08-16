@@ -563,6 +563,57 @@ function uriListResponse(uri) {
   });
 }
 
+function fieldproofInvoice(origin, payTo, btc) {
+  const usdcUri = usdcEip681(payTo);
+  const btcUri = btcBip21(btc?.satsFor42 || null);
+  return {
+    id: 'fieldproof-42',
+    amountUsd: GOAL_USD,
+    currency: 'USD',
+    description: 'One $42 payment meets the first-income bar. Self-test excluded.',
+    card: STRIPE_PAYMENT_LINK,
+    methods: [
+      {
+        scheme: 'stripe',
+        url: STRIPE_PAYMENT_LINK,
+        amountUsd: GOAL_USD,
+        methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
+      },
+      {
+        scheme: 'eip681',
+        uri: usdcUri,
+        network: 'eip155:8453',
+        asset: 'USDC',
+        amountUsd: GOAL_USD,
+        amountAtomic: '42000000',
+        payTo,
+      },
+      {
+        scheme: 'bip21',
+        uri: btcUri,
+        asset: 'BTC',
+        amountUsd: GOAL_USD,
+        amountSats: btc?.satsFor42 ?? null,
+        payTo: BTC_ADDRESS,
+      },
+      {
+        scheme: 'x402',
+        url: `${origin}/v1/sponsor`,
+        method: 'POST',
+        asset: 'USDC',
+        amountUsd: GOAL_USD,
+        amountAtomic: '42000000',
+      },
+      {
+        scheme: 'zelle',
+        payTo: '3labsio@gmail.com',
+        amountUsd: GOAL_USD,
+        memo: 'Fieldproof',
+      },
+    ],
+  };
+}
+
 function copyPayControls(address, payUri, addressLabel = 'Copy address', invoiceLabel = 'Copy invoice') {
   const esc = (value) => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return `<p>
@@ -774,6 +825,13 @@ function openApiSpec(origin) {
           },
         },
       },
+      '/v1/invoice': {
+        get: {
+          operationId: 'invoice42',
+          summary: 'HTTP 200 multi-rail $42 invoice: Stripe URL, EIP-681, BIP-21, x402 sponsor, Zelle. Not a 402.',
+          responses: { 200: { description: 'JSON invoice. Accept text/uri-list for Stripe + wallet URIs.' } },
+        },
+      },
       '/v1/pay/usdc.uri': {
         get: {
           operationId: 'payUsdcUri',
@@ -881,7 +939,7 @@ function agentCard(origin) {
         id: 'pay-42',
         name: 'Pay Fieldproof $42',
         description:
-          'One $42 payment that meets the first-$42 bar. Open fallback.url for card, or POST /v1/sponsor for 42 USDC on Base.',
+          'One $42 payment that meets the first-$42 bar. GET /v1/invoice for every live rail, open fallback.url for card, or POST /v1/sponsor for 42 USDC on Base.',
         tags: ['payment', 'stripe', 'x402', 'usdc'],
         examples: ['Pay Fieldproof $42 with a card', 'Settle 42 USDC on Base via x402'],
         inputModes: ['text'],
@@ -1075,6 +1133,14 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 42,
       meets_first_42: true,
       note: 'canonical $42 quote: browsers 302 to Stripe; agents get a 402 with USDC plus card fallback',
+    },
+    {
+      id: 'invoice-42',
+      url: `${origin}/v1/invoice`,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'HTTP 200 multi-rail invoice: Stripe, EIP-681, BIP-21, x402, Zelle. Not a 402.',
     },
     {
       id: 'usdc-direct',
@@ -1471,6 +1537,7 @@ export default {
         `${url.origin}/v1/pay/card`,
         `${url.origin}/v1/sponsor`,
         `${url.origin}/v1/offer`,
+        `${url.origin}/v1/invoice`,
         `${url.origin}/v1/pay/usdc.uri`,
         `${url.origin}/v1/pay/btc.uri`,
         `${url.origin}/mcp`,
@@ -1526,6 +1593,7 @@ export default {
         `- Mission offer (auto-opens Stripe): https://fieldproofhq.github.io/offer/`,
         `- Worker short URL: ${url.origin}/pay`,
         `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
+        `- Multi-rail invoice (HTTP 200): ${url.origin}/v1/invoice`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -1857,6 +1925,7 @@ ${cardFallbackHtml()}
           short_url: `${url.origin}/pay`,
           methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
           also: {
+            invoice: `${url.origin}/v1/invoice`,
             usdc: `${url.origin}/v1/pay/usdc`,
             usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
             btc: `${url.origin}/v1/pay/btc`,
@@ -2092,6 +2161,19 @@ ${cardFallbackHtml()}
         {},
         c.free
       );
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/invoice' || url.pathname === '/v1/invoice/' || url.pathname === '/.well-known/invoice.json')) {
+      const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      const invoice = fieldproofInvoice(url.origin, payTo, btc);
+      if (wantsUriList(request)) {
+        const lines = [STRIPE_PAYMENT_LINK, invoice.methods.find((m) => m.scheme === 'eip681')?.uri, invoice.methods.find((m) => m.scheme === 'bip21')?.uri].filter(Boolean);
+        return uriListResponse(lines.join('\n'));
+      }
+      if (wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
+      return json(200, invoice, { Link: paymentLinkHeader() }, true);
     }
 
     if ((request.method === 'GET' || request.method === 'POST') && (url.pathname === '/v1/offer' || url.pathname === '/v1/offer/')) {
