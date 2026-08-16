@@ -75,6 +75,7 @@ assert.match(cardPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.match(cardPage, /Cash App/);
 assert.match(cardPage, /US bank debit/);
 assert.match(cardPage, /Klarna/);
+assert.match(cardPage, /Afterpay/);
 res = await call(freeEnv, 'GET', '/pay');
 assert.strictEqual(res.status, 302);
 assert.equal(res.headers.get('location'), 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
