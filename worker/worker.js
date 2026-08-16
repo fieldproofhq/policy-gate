@@ -554,6 +554,7 @@ function wantsJson(request) {
 
 const ZELLE_EMAIL = '3labsio@gmail.com';
 const GUMROAD_PACK = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
+const GUMROAD_TIP = 'https://store.3labs.io/l/tip-jar?wanted=true';
 
 function zelleMailto() {
   return `mailto:${ZELLE_EMAIL}?subject=Fieldproof%20%2442&body=Send%20%2442.00%20via%20Zelle%20to%203labsio%40gmail.com%20memo%20Fieldproof.`;
@@ -624,6 +625,13 @@ function fieldproofInvoice(origin, payTo, btc) {
         asset: 'USD',
         amountUsd: GOAL_USD,
         product: 'agentic-ai-governance-pack',
+      },
+      {
+        scheme: 'gumroad-tip',
+        url: GUMROAD_TIP,
+        asset: 'USD',
+        amountUsd: GOAL_USD,
+        product: 'tip-jar',
       },
     ],
   };
@@ -880,6 +888,13 @@ function openApiSpec(origin) {
           operationId: 'payUsdcUri',
           summary: 'text/uri-list EIP-681 invoice for 42 USDC on Base. Open in any wallet that understands ethereum: URIs.',
           responses: { 200: { description: 'text/uri-list; one ethereum: transfer URI' } },
+        },
+      },
+      '/v1/pay/tip-jar.uri': {
+        get: {
+          operationId: 'payTipUri',
+          summary: 'text/uri-list of the live $42 Gumroad tip-jar checkout',
+          responses: { 200: { description: 'text/uri-list; one store.3labs.io tip-jar URI' } },
         },
       },
       '/v1/pay/pack.uri': {
@@ -1233,8 +1248,18 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/tip-jar`,
       asset: 'USD',
       amount_usd: 42,
+      pay_uri: GUMROAD_TIP,
       meets_first_42: true,
       note: 'HTML pay landing then Gumroad tip-jar checkout; $42 suggested amount meets the bar only if a stranger pays it',
+    },
+    {
+      id: 'tip-uri',
+      url: `${origin}/v1/pay/tip-jar.uri`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_uri: GUMROAD_TIP,
+      meets_first_42: true,
+      note: 'text/uri-list of the live $42 Gumroad tip-jar checkout; agents open the first URI',
     },
     {
       id: 'x402-check',
@@ -1716,6 +1741,7 @@ export default {
         `${url.origin}/v1/pay/btc.uri`,
         `${url.origin}/v1/pay/zelle.uri`,
         `${url.origin}/v1/pay/pack.uri`,
+        `${url.origin}/v1/pay/tip-jar.uri`,
         `${url.origin}/mcp`,
         `${url.origin}/skills/pay/SKILL.md`,
         `${url.origin}/.well-known/skills.json`,
@@ -1783,6 +1809,7 @@ export default {
         '- $42 Governance Pack: https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true',
         `- Pack URI (text/uri-list): ${url.origin}/v1/pay/pack.uri`,
         '- $42 tip jar: https://store.3labs.io/l/tip-jar?wanted=true',
+        `- Tip-jar URI (text/uri-list): ${url.origin}/v1/pay/tip-jar.uri`,
         '',
         '## Crypto / Zelle',
         `- 42 USDC on Base: ${url.origin}/v1/pay/usdc`,
@@ -1915,8 +1942,29 @@ ${cardFallbackHtml()}
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/tip-jar.uri' || url.pathname === '/v1/pay/tip-jar.txt')) {
+      return uriListResponse(GUMROAD_TIP);
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/tip-jar') {
-      const checkout = 'https://store.3labs.io/l/tip-jar?wanted=true';
+      const checkout = GUMROAD_TIP;
+      if (wantsUriList(request)) return uriListResponse(checkout);
+      if (wantsJson(request)) {
+        return json(
+          200,
+          {
+            scheme: 'gumroad',
+            asset: 'USD',
+            amountUsd: GOAL_USD,
+            uri: checkout,
+            url: checkout,
+            product: 'tip-jar',
+            card: STRIPE_PAYMENT_LINK,
+          },
+          { Link: paymentLinkHeader() },
+          true
+        );
+      }
       const overlay = 'https://fieldproof.gumroad.com/l/tip-jar';
       const cover = 'https://public-files.gumroad.com/5u12tofcw2kg35lga2na9ri6cba3';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support Fieldproof $42 — tip jar</title><script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
@@ -2207,6 +2255,7 @@ ${cardFallbackHtml()}
             zelle_uri: `${url.origin}/v1/pay/zelle.uri`,
             store: 'https://store.3labs.io',
             pack_uri: `${url.origin}/v1/pay/pack.uri`,
+            tip_uri: `${url.origin}/v1/pay/tip-jar.uri`,
           },
         },
         {},
