@@ -851,10 +851,7 @@ function walletPayControls(payTo, payUri) {
     }
   });
   if (window.ethereum) {
-    btn.click();
-  } else if (PAY_URI && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
-    say("Opening your wallet…");
-    location.replace(PAY_URI);
+    say("Browser wallet detected. Tap the button to send 42 USDC on Base.");
   } else {
     say("No browser wallet. Use the QR, the wallet link, or Pay $42 with card.");
   }
@@ -3101,7 +3098,7 @@ ${cardFallbackHtml()}
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
-<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds. Scan the QR or pay in this browser.</p>
+<p>This page stays here so you can pick a rail. One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds. Scan the QR or tap the button — this page does not auto-open a wallet.</p>
 ${walletPayControls(payTo, payUri)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
@@ -3110,6 +3107,7 @@ ${walletPayControls(payTo, payUri)}
 ${copyPayControls(payTo, payUri)}
 ${cardFallbackHtml()}
 <p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
+<p>Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -3441,6 +3439,20 @@ ${cardFallbackHtml()}
               fallback,
               free: c.free,
               evaluate_before_paying: [`${url.origin}/v1/example`, `${url.origin}/v1/policies`],
+            },
+            {
+              // Live paid endpoint that was absent from our own discovery document: an agent
+              // reading .well-known/x402 could not find it, which is the same defect as a
+              // capability a schema does not advertise.
+              url: `${url.origin}/v1/ethics-check`,
+              method: 'POST',
+              mimeType: 'application/json',
+              description:
+                'Screen a declared action against seven canons and return clear / reflect / stop, with the canons that fired. Answers "should I?" rather than "am I allowed to?".',
+              accepts: c.free ? [] : [paymentRequirementsV2(pricedCfg(c, ETHICS_PRICE_USD, 'Screen a declared action against the seven canons'))],
+              fallback,
+              free: c.free,
+              evaluate_before_paying: [`${url.origin}/v1/canons`],
             },
             {
               url: `${url.origin}/v1/sponsor`,
