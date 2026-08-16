@@ -814,6 +814,10 @@ function stripeQrUrl() {
   return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
 }
 
+function usdcQrUrl(payTo) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(usdcEip681(payTo))}`;
+}
+
 function npmFunding() {
   return [
     { type: 'individual', url: 'https://fieldproofhq.github.io/offer/' },
@@ -1072,6 +1076,13 @@ function openApiSpec(origin) {
           operationId: 'payCardUri',
           summary: 'text/uri-list of the live $42 Stripe Payment Link. Agents open the first URI.',
           responses: { 200: { description: 'text/uri-list; one https://buy.stripe.com/… URI' } },
+        },
+      },
+      '/v1/pay/usdc.png': {
+        get: {
+          operationId: 'payUsdcQr',
+          summary: '302 to a scannable QR of the 42 USDC EIP-681 invoice on Base',
+          responses: { 302: { description: 'Redirect to QR image of the 42 USDC transfer' } },
         },
       },
       '/v1/pay/usdc.uri': {
@@ -1520,6 +1531,18 @@ function checkouts(c, origin, btc = null) {
       note: 'in-browser wallet transfer of 42 USDC on Base, plus EIP-681 pay_uri and QR',
     },
     {
+      id: 'usdc-qr',
+      url: `${origin}/v1/pay/usdc.png`,
+      asset: 'USDC',
+      amount_usd: 42,
+      pay_to: payTo,
+      network: c.network,
+      pay_uri: usdcEip681(payTo),
+      qr_url: usdcQrUrl(payTo),
+      meets_first_42: true,
+      note: '302 to a scannable QR of the 42 USDC EIP-681 invoice on Base',
+    },
+    {
       id: 'zelle',
       url: `${origin}/v1/pay/zelle`,
       asset: 'USD',
@@ -1949,6 +1972,7 @@ export default {
         `${url.origin}/v1/quote`,
         `${url.origin}/v1/invoice`,
         `${url.origin}/v1/pay/usdc.uri`,
+        `${url.origin}/v1/pay/usdc.png`,
         `${url.origin}/v1/pay/btc.uri`,
         `${url.origin}/v1/pay/zelle.uri`,
         `${url.origin}/v1/pay/pack.uri`,
@@ -2038,6 +2062,7 @@ export default {
         '## Crypto / Zelle',
         `- 42 USDC on Base: ${url.origin}/v1/pay/usdc`,
         `- 42 USDC EIP-681 (text/uri-list): ${url.origin}/v1/pay/usdc.uri`,
+        `- 42 USDC QR (scannable): ${url.origin}/v1/pay/usdc.png`,
         `- POST /v1/sponsor x402: ${url.origin}/v1/sponsor`,
         `- Bitcoin: ${url.origin}/v1/pay/btc`,
         `- Bitcoin BIP-21 (text/uri-list): ${url.origin}/v1/pay/btc.uri`,
@@ -2309,6 +2334,11 @@ ${cardFallbackHtml()}
       return uriListResponse(usdcEip681(payTo));
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/usdc.png' || url.pathname === '/v1/pay/usdc.qr')) {
+      const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+      return Response.redirect(usdcQrUrl(payTo), 302);
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/usdc') {
       const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
       const payUri = usdcEip681(payTo);
@@ -2544,6 +2574,7 @@ ${cardFallbackHtml()}
             card_qr: `${url.origin}/v1/pay/card.png`,
             usdc: `${url.origin}/v1/pay/usdc`,
             usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
+            usdc_qr: `${url.origin}/v1/pay/usdc.png`,
             btc: `${url.origin}/v1/pay/btc`,
             btc_uri: `${url.origin}/v1/pay/btc.uri`,
             zelle: `${url.origin}/v1/pay/zelle`,
