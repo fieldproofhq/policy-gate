@@ -1423,11 +1423,13 @@ function payIndexHtml(origin, btc = null) {
   const btcLabel = sats
     ? `${sats} sats (~$${GOAL_USD}${price ? ` at $${price}/BTC` : ''})`
     : `~$42 of BTC`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title><link rel="payment" href="${STRIPE_PAYMENT_LINK}"></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}"></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay Fieldproof $42</h1>
-<p>Fieldproof is a fractional C-suite for agentic teams. One payment. No Fieldproof account.</p>
+<p>Opening checkout. Fieldproof is a fractional C-suite for agentic teams. One payment. No Fieldproof account.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p>Card, Cash App, Link, US bank debit, Klarna, Afterpay, or Affirm.</p>
+<p>If nothing happens, use the button. Card, Cash App, Link, US bank debit, Klarna, Afterpay, or Affirm.</p>
 <p>Other ways:</p>
 <ul>
 <li><a href="${origin}/v1/pay/card">Card checkout page</a> — opens the same $42 Stripe link</li>
@@ -1446,6 +1448,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/x402">x402 agent docs</a> — per-check quote</li>
 </ul>
 <p>More: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
 }
 
