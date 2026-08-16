@@ -1231,9 +1231,9 @@ globalThis.fetch = async (url, init) => {
     assert.equal(payload.method, 'eth_call');
     return { json: async () => ({ result: '0x' + BigInt(5000).toString(16) }) };
   }
-  if (href.includes('/api/v1/prices')) return { json: async () => ({ USD: 63000 }) };
+  if (href.includes('/api/v1/prices')) return { ok: true, json: async () => ({ USD: 63000 }) };
   if (href.includes('/api/address/')) {
-    return { json: async () => ({ chain_stats: { funded_txo_sum: 0, spent_txo_sum: 0 }, mempool_stats: { funded_txo_sum: 0 } }) };
+    return { ok: true, json: async () => ({ chain_stats: { funded_txo_sum: 0, spent_txo_sum: 0 }, mempool_stats: { funded_txo_sum: 0 } }) };
   }
   throw new Error('unexpected fetch ' + href);
 };
@@ -1251,6 +1251,35 @@ try {
   assert.equal(quoted.amount_sats, 66667);
   assert.equal(quoted.meets_first_42, true);
   assert.ok(received.checkouts.some((o) => o.id === 'usdc-direct' && o.meets_first_42));
+} finally {
+  globalThis.fetch = realFetch;
+}
+
+globalThis.fetch = async (url, init) => {
+  const href = String(url);
+  if (/mainnet\.base\.org|base\.publicnode\.com|1rpc\.io\/base/.test(href)) {
+    const payload = JSON.parse(init.body);
+    assert.equal(payload.method, 'eth_call');
+    return { json: async () => ({ result: '0x' + BigInt(5000).toString(16) }) };
+  }
+  if (href.includes('mempool.space')) throw new Error('timed out');
+  if (href.includes('blockstream.info/api/address/')) {
+    return { ok: true, json: async () => ({ chain_stats: { funded_txo_sum: 0, spent_txo_sum: 0 }, mempool_stats: { funded_txo_sum: 0 } }) };
+  }
+  if (href.includes('api.coinbase.com')) {
+    return { ok: true, json: async () => ({ data: { amount: '63000' } }) };
+  }
+  throw new Error('unexpected fetch ' + href);
+};
+try {
+  const fallbackEnv = { PAY_TO: '0x07C2383008a9ed30581f27Db5531E19411c94fb3', NETWORK: 'eip155:8453' };
+  res = await call(fallbackEnv, 'GET', '/v1/received');
+  assert.strictEqual(res.status, 200);
+  const fallbackReceived = await res.json();
+  assert.equal(fallbackReceived.externalUsd, 0);
+  assert.equal(fallbackReceived.bitcoin.sats, 0);
+  assert.equal(fallbackReceived.bitcoin.priceUsd, 63000);
+  assert.equal(fallbackReceived.sources.btcUsd, 0);
 } finally {
   globalThis.fetch = realFetch;
 }

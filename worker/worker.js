@@ -1385,18 +1385,55 @@ function satsForGoal(priceUsd, goalUsd = GOAL_USD) {
   return Math.ceil((goal / price) * 1e8);
 }
 
+async function fetchJson(fetchImpl, url, timeoutMs = 4000) {
+  const signal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+    ? AbortSignal.timeout(timeoutMs)
+    : undefined;
+  const res = await fetchImpl(url, signal ? { signal } : {});
+  if (!res || res.ok === false) throw new Error(`http ${res?.status || 'fetch_failed'}`);
+  return res.json();
+}
+
 async function observeBtc(fetchImpl = fetch) {
-  const [infoRes, priceRes] = await Promise.all([
-    fetchImpl(`https://mempool.space/api/address/${BTC_ADDRESS}`),
-    fetchImpl('https://mempool.space/api/v1/prices'),
-  ]);
-  const info = await infoRes.json();
-  const prices = await priceRes.json();
+  const addressSources = [
+    `https://mempool.space/api/address/${BTC_ADDRESS}`,
+    `https://blockstream.info/api/address/${BTC_ADDRESS}`,
+  ];
+  const priceReaders = [
+    { url: 'https://mempool.space/api/v1/prices', pick: (json) => Number(json.USD) },
+    { url: 'https://api.coinbase.com/v2/prices/BTC-USD/spot', pick: (json) => Number(json.data?.amount) },
+    { url: 'https://api.kraken.com/0/public/Ticker?pair=XBTUSD', pick: (json) => Number(json.result?.XXBTZUSD?.c?.[0]) },
+  ];
+  let info = null;
+  for (const url of addressSources) {
+    try {
+      const body = await fetchJson(fetchImpl, url);
+      if (body && body.chain_stats) {
+        info = body;
+        break;
+      }
+    } catch {
+      /* next Esplora */
+    }
+  }
+  if (!info) throw new Error('btc address observe failed');
+  let priceUsd = null;
+  for (const reader of priceReaders) {
+    try {
+      const json = await fetchJson(fetchImpl, reader.url);
+      const price = reader.pick(json);
+      if (Number.isFinite(price) && price > 0) {
+        priceUsd = price;
+        break;
+      }
+    } catch {
+      /* next public spot */
+    }
+  }
   const sats =
     Number(info.chain_stats?.funded_txo_sum || 0) -
     Number(info.chain_stats?.spent_txo_sum || 0) +
     Number(info.mempool_stats?.funded_txo_sum || 0);
-  const priceUsd = Number(prices.USD);
   const revenueUsd = Number.isFinite(sats) && Number.isFinite(priceUsd)
     ? Number(((sats / 1e8) * priceUsd).toFixed(6))
     : (sats === 0 ? 0 : null);
@@ -1762,6 +1799,20 @@ function checkouts(c, origin, btc = null) {
   ];
 }
 
+/** Bazaar discovery declaration.
+ *
+ *  Two things here are load-bearing and were both wrong until 2026-08-16:
+ *
+ *  1. `info.input` uses `body`, not `bodyFields`. The spec's input schema sets
+ *     `additionalProperties: false`, so one unrecognised key invalidates the declaration.
+ *  2. `schema` validates `info` — NOT the request body. It previously described the
+ *     {request, policy, policy_id} POST fields, which is a different object entirely, so it
+ *     declared no `input` property at all. Facilitators MUST validate `info` against `schema`
+ *     before cataloging, so that declaration could only ever be rejected.
+ *
+ *  A rejection is invisible except in the `EXTENSION-RESPONSES` header on verify/settle, which
+ *  is why this survived: nothing 4xxs, the payment settles, the resource simply never appears.
+ */
 function bazaarExtension(origin) {
   return {
     bazaar: {
@@ -1770,7 +1821,7 @@ function bazaarExtension(origin) {
           type: 'http',
           method: 'POST',
           bodyType: 'json',
-          bodyFields: {
+          body: {
             request: { action: 'payments.send', actor: 'my-agent', params: { amount_usd: 25 } },
             policy_id: 'default-action-tiers',
           },
@@ -1788,20 +1839,32 @@ function bazaarExtension(origin) {
         },
       },
       schema: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
-          request: {
+          input: {
             type: 'object',
-            required: ['action'],
             properties: {
-              action: { type: 'string', description: 'Dotted action id, e.g. payments.send' },
-              actor: { type: 'string' },
-              params: { type: 'object' },
+              type: { type: 'string', const: 'http' },
+              method: { type: 'string', enum: ['POST', 'PUT', 'PATCH'] },
+              bodyType: { type: 'string', enum: ['json', 'form-data', 'text'] },
+              body: { type: 'object' },
+              queryParams: { type: 'object', additionalProperties: { type: 'string' } },
+              headers: { type: 'object', additionalProperties: { type: 'string' } },
             },
+            required: ['type', 'method', 'bodyType', 'body'],
+            additionalProperties: false,
           },
-          policy: { type: 'object', description: 'Inline policy document (alternative to policy_id)' },
-          policy_id: { type: 'string', description: 'Built-in policy id; see GET /v1/policies' },
+          output: {
+            type: 'object',
+            properties: {
+              type: { type: 'string' },
+              example: { type: 'object' },
+            },
+            required: ['type'],
+          },
         },
+        required: ['input'],
       },
     },
   };
