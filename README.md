@@ -117,7 +117,7 @@ The engine is MIT and free forever. The pack is the part that took the writing.
 
 ## Free: the x402 distribution playbook
 
-We spent a day discovering that a working, revenue-capable x402 service is invisible until you fix nine specific things. Every defect was live in this service. Every fix is in [](guides/x402-distribution-playbook.md) — free, no signup:
+We spent a day discovering that a working, revenue-capable x402 service is invisible until you fix nine specific things. Every defect was live in this service. Every fix is in [**the playbook**](guides/x402-distribution-playbook.md) — free, no signup:
 
 - the Bazaar declaration that never reaches the facilitator, so a correct extension points at nobody
 - why directory health probes read your  as a dead service
