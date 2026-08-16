@@ -343,6 +343,12 @@ try {
 res = await call(freeEnv, 'GET', '/v1/received');
 assert.strictEqual(res.status, 200);
 assert.equal((await res.json()).status, 'unavailable');
+res = await call(freeEnv, 'GET', '/v1/received', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const receivedPage = await res.text();
+assert.match(receivedPage, /\$42 with card/);
+assert.match(receivedPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 
 res = await call(freeEnv, 'GET', '/v1/policies');
 assert.deepStrictEqual((await res.json()).policies, ['default-action-tiers']);

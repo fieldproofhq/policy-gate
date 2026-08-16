@@ -756,7 +756,6 @@ function payIndexHtml(origin, btc = null) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
 <p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
-<p>Need a real integration instead? <a href="mailto:3labsio@gmail.com?subject=Fieldproof%20one-flow%20pilot">Request a one-flow pilot</a> with proposal, authority, outcome, refusal, and replay evidence.</p>
 <p>Card first:</p>
 <ul>
 <li><a href="${STRIPE_PAYMENT_LINK}">$42 with card</a> — live Stripe Payment Link</li>
@@ -1366,6 +1365,14 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/received') {
+      if (wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() },
+        });
+      }
       if (!c.payTo) {
         return json(200, { status: 'unavailable', externalUsd: null, goalUsd: GOAL_USD, goalMet: false, note: 'PAY_TO is unset', checkouts: checkouts(c, url.origin) }, {}, true);
       }
