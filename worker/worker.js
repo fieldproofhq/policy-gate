@@ -9,6 +9,7 @@
  *   GET  /            service info (agent-friendly discovery JSON)
  *   GET  /healthz     liveness
  *   GET  /v1/policies list built-in policy ids
+ *   GET  /v1/received public Base USDC observation of PAY_TO (self-test excluded)
  *   POST /v1/check    evaluate { request, policy | policy_id } -> verdict
  *
  * Modes (env vars, all optional — defaults to FREE):
@@ -292,6 +293,42 @@ function paymentRequirementsV2(c) {
     payTo: c.payTo,
     maxTimeoutSeconds: 60,
     extra: token.extra,
+  };
+}
+
+const SELF_TEST_USD = 0.005;
+const GOAL_USD = 42;
+const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const BASE_RPCS = ['https://mainnet.base.org', 'https://base.publicnode.com', 'https://1rpc.io/base'];
+
+async function readUsdcBalance(address, fetchImpl = fetch) {
+  const data = '0x70a08231' + address.toLowerCase().replace('0x', '').padStart(64, '0');
+  const payload = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: BASE_USDC, data }, 'latest'] });
+  let last = 'rpc_failed';
+  for (const rpc of BASE_RPCS) {
+    try {
+      const response = await fetchImpl(rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body: payload });
+      const body = await response.json();
+      if (body.result) return Number(BigInt(body.result)) / 1e6;
+      last = JSON.stringify(body.error || body).slice(0, 160);
+    } catch (err) {
+      last = String(err && err.message ? err.message : err).slice(0, 160);
+    }
+  }
+  throw new Error(last);
+}
+
+function assessReceived(balanceUsd, observedAt = new Date().toISOString()) {
+  if (!Number.isFinite(balanceUsd) || balanceUsd < 0) throw new Error('balance must be a non-negative finite number');
+  const externalUsd = Math.max(0, Number((balanceUsd - SELF_TEST_USD).toFixed(6)));
+  return {
+    observedAt,
+    walletUsd: balanceUsd,
+    selfTestUsd: SELF_TEST_USD,
+    externalUsd,
+    goalUsd: GOAL_USD,
+    goalMet: externalUsd >= GOAL_USD,
+    remainingUsd: Math.max(0, Number((GOAL_USD - externalUsd).toFixed(6))),
   };
 }
 
@@ -590,6 +627,7 @@ export default {
             check: 'POST /v1/check',
             policies: 'GET /v1/policies',
             example: 'GET /v1/example  (free — worked verdicts from the live engine)',
+            received: 'GET /v1/received  (free — public USDC observation of PAY_TO; self-test excluded)',
             health: 'GET /healthz',
           },
           evaluate_before_paying: 'GET /v1/example and GET /v1/policies are free and complete. Nothing about the verdict logic is hidden behind the paywall.',
@@ -609,6 +647,42 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/checkouts') {
       return json(200, { checkouts: checkouts(c, url.origin) }, {}, c.free);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/received') {
+      if (!c.payTo) {
+        return json(200, { status: 'unavailable', externalUsd: null, goalUsd: GOAL_USD, goalMet: false, note: 'PAY_TO is unset', checkouts: checkouts(c, url.origin) }, {}, true);
+      }
+      try {
+        const balanceUsd = await readUsdcBalance(c.payTo);
+        const observed = assessReceived(balanceUsd);
+        return json(
+          200,
+          {
+            status: 'observed',
+            wallet: c.payTo,
+            network: c.network,
+            ...observed,
+            note: 'Public Base USDC read of the receive wallet. The $0.005 self-test is excluded. A 402 or storefront HTTP 200 is not income.',
+            checkouts: checkouts(c, url.origin),
+          },
+          {},
+          true
+        );
+      } catch (err) {
+        return json(502, { status: 'unavailable', error: 'rpc_failed', detail: String(err && err.message ? err.message : err).slice(0, 160), goalUsd: GOAL_USD, goalMet: false }, {}, true);
+      }
+    }
+
+    // Domain-ownership proof for the official MCP registry. Ed25519 PUBLIC key only —
+    // the private half exists solely outside this repo and is never committed. Publishing
+    // to the official registry matters because downstream directories consume its API, so
+    // one verified entry propagates rather than needing a submission per directory.
+    if (request.method === 'GET' && url.pathname === '/.well-known/mcp-registry-auth') {
+      return new Response('v=MCPv1; k=ed25519; p=EGbytDYPTQb3C/N/jNxx/kq5l8U5kXJTeW5Kw4yXsAM=', {
+        status: 200,
+        headers: { 'content-type': 'text/plain; charset=utf-8', ...corsHeaders() },
+      });
     }
 
     // Domain-ownership proof for the 402index.io directory. This is the SHA-256 hash of a
@@ -816,4 +890,4 @@ export default {
   },
 };
 
-export { check, validatePolicy, globMatch, DEFAULT_POLICY };
+export { check, validatePolicy, globMatch, DEFAULT_POLICY, assessReceived, readUsdcBalance, SELF_TEST_USD, GOAL_USD };

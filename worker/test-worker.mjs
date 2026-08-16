@@ -1,7 +1,7 @@
 // Test harness: engine cases + HTTP handler (free mode + paid 402 shape).
 // Run: node test-worker.mjs   (Node >= 18; uses global Request/Response)
 import assert from 'node:assert';
-import worker, { check, globMatch, DEFAULT_POLICY } from './worker.js';
+import worker, { check, globMatch, DEFAULT_POLICY, assessReceived } from './worker.js';
 
 const policy = DEFAULT_POLICY;
 
@@ -73,6 +73,37 @@ const zelle = listed.checkouts.find((o) => o.id === 'zelle');
 assert.equal(zelle.amount_usd, 42);
 assert.equal(zelle.meets_first_42, true);
 assert.match(zelle.pay_to, /3labsio@gmail.com/);
+
+const selfTest = assessReceived(0.005, '2026-08-16T06:30:00.000Z');
+assert.equal(selfTest.externalUsd, 0);
+assert.equal(selfTest.goalMet, false);
+assert.equal(selfTest.remainingUsd, 42);
+const met = assessReceived(42.005, '2026-08-16T06:30:00.000Z');
+assert.equal(met.externalUsd, 42);
+assert.equal(met.goalMet, true);
+
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, init) => {
+  assert.match(String(url), /mainnet\.base\.org|base\.publicnode\.com|1rpc\.io\/base/);
+  const payload = JSON.parse(init.body);
+  assert.equal(payload.method, 'eth_call');
+  return { json: async () => ({ result: '0x' + BigInt(5000).toString(16) }) };
+};
+try {
+  const receiveEnv = { PAY_TO: '0x07C2383008a9ed30581f27Db5531E19411c94fb3', NETWORK: 'eip155:8453' };
+  res = await call(receiveEnv, 'GET', '/v1/received');
+  assert.strictEqual(res.status, 200, 'received is free and public');
+  const received = await res.json();
+  assert.equal(received.externalUsd, 0);
+  assert.equal(received.goalMet, false);
+  assert.equal(received.selfTestUsd, 0.005);
+  assert.ok(received.checkouts.some((o) => o.id === 'usdc-direct' && o.meets_first_42));
+} finally {
+  globalThis.fetch = realFetch;
+}
+res = await call(freeEnv, 'GET', '/v1/received');
+assert.strictEqual(res.status, 200);
+assert.equal((await res.json()).status, 'unavailable');
 
 res = await call(freeEnv, 'GET', '/v1/policies');
 assert.deepStrictEqual((await res.json()).policies, ['default-action-tiers']);
