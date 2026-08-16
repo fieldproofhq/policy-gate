@@ -524,6 +524,12 @@ function wantsHtml(request) {
   return /text\/html/i.test(accept);
 }
 
+function wantsSponsorPage(request) {
+  const accept = request.headers.get('accept') || '';
+  if (/application\/json/i.test(accept)) return false;
+  return true;
+}
+
 function copyPayControls(address, payUri, addressLabel = 'Copy address', invoiceLabel = 'Copy invoice') {
   const esc = (value) => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return `<p>
@@ -1531,7 +1537,7 @@ ${copyPayControls(payTo, payUri)}
     if (request.method === 'GET' && url.pathname === '/v1/sponsor') {
       const quote = sponsorCfg(c);
       const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
-      if (wantsHtml(request)) {
+      if (wantsSponsorPage(request)) {
         return new Response(sponsorHtml(url.origin, payTo), {
           status: 200,
           headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() },
