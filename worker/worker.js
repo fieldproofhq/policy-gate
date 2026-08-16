@@ -800,7 +800,9 @@ const BASE_RPCS = ['https://mainnet.base.org', 'https://base.publicnode.com', 'h
 const BTC_ADDRESS = 'bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t';
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00';
 const STRIPE_CFO_LINK = 'https://buy.stripe.com/6oU28sa5Y9bLgTn9Lf1sQ01';
+const STRIPE_COO_LINK = 'https://buy.stripe.com/4gM7sM4LEafPcD72iN1sQ02';
 const CFO_ZIP = 'https://fieldproofhq.github.io/csuite/cfo/Fractional-CFO-Launch-Kit.zip';
+const COO_ZIP = 'https://fieldproofhq.github.io/csuite/coo/Fractional-COO-Launch-Kit.zip';
 
 /** Card path for agents that get a 402 but cannot settle USDC. Kept out of `accepts`
  *  so x402 facilitators still see only the exact-scheme USDC quote. */
@@ -1442,6 +1444,7 @@ function payIndexHtml(origin, btc = null) {
 <li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, Gumroad card</li>
 <li><a href="${origin}/v1/pay/cmo">$39 Fractional CMO kit</a> — humans and agents</li>
 <li><a href="${origin}/v1/pay/cfo">$42 Fractional CFO kit</a> — six Word templates + ZIP</li>
+<li><a href="${origin}/v1/pay/coo">$42 Fractional COO kit</a> — six Word templates + ZIP</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — listed at $42</li>
 <li><a href="https://fieldproofhq.github.io/csuite/">Virtual C-suite</a> — CMO live; CFO, COO, CTO, CISO operating contracts</li>
 </ul>
@@ -1567,6 +1570,15 @@ function checkouts(c, origin, btc = null) {
       pay_uri: STRIPE_CFO_LINK,
       meets_first_42: true,
       note: 'live Fractional CFO Launch Kit Word ZIP; one $42 Stripe payment meets the bar',
+    },
+    {
+      id: 'coo-kit',
+      url: `${origin}/v1/pay/coo`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_uri: STRIPE_COO_LINK,
+      meets_first_42: true,
+      note: 'live Fractional COO Launch Kit Word ZIP; one $42 Stripe payment meets the bar',
     },
     {
       id: 'tip-jar',
@@ -2396,6 +2408,25 @@ ${cardFallbackHtml()}
 <p><a href="${STRIPE_CFO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p>After payment, download: <a href="${CFO_ZIP}">Fractional-CFO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cfo/">csuite/cfo</a>.</p>
 <script>location.replace(${JSON.stringify(STRIPE_CFO_LINK)});</script>
+</body></html>`;
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/coo' || url.pathname === '/v1/pay/coo.uri')) {
+      if (url.pathname === '/v1/pay/coo.uri' || wantsUriList(request)) return uriListResponse(STRIPE_COO_LINK);
+      if (wantsJson(request)) {
+        return json(200, { scheme: 'stripe', asset: 'USD', amountUsd: GOAL_USD, uri: STRIPE_COO_LINK, url: STRIPE_COO_LINK, zip: COO_ZIP, product: 'fractional-coo-launch-kit' }, { Link: paymentLinkHeader() }, true);
+      }
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 COO Launch Kit — Fieldproof</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_COO_LINK}">
+<link rel="payment" href="${STRIPE_COO_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Buy the $42 Fractional COO Launch Kit</h1>
+<p>Opening checkout. Six editable Word templates for cadence, human gates, contract boards, delivery SLAs, incident escalation, and a Friday ops review. One $42 payment meets the first-income bar.</p>
+<p style="font-size:1.25rem;font-weight:700">$42</p>
+<p><a href="${STRIPE_COO_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>After payment, download: <a href="${COO_ZIP}">Fractional-COO-Launch-Kit.zip</a>. Agent contract: <a href="https://fieldproofhq.github.io/csuite/coo/">csuite/coo</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_COO_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
