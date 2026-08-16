@@ -278,6 +278,28 @@ function sponsorCfg(c) {
   );
 }
 
+function wantsHtml(request) {
+  const accept = request.headers.get('accept') || '';
+  if (/application\/json/i.test(accept)) return false;
+  return /text\/html/i.test(accept);
+}
+
+function sponsorHtml(origin, payTo) {
+  const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Pay 42 USDC on Base</h1>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong> meets Fieldproof's first-$42 external-income bar. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>. Self-pays and the $0.005 self-test do not count.</p>
+<p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
+<p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
+<p>Pay to:</p>
+<pre style="white-space:pre-wrap;word-break:break-all">${payTo}</pre>
+<p>Token: USDC <code>0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</code> · amount <code>42000000</code> atomic (6 decimals).</p>
+<pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${origin}/v1/sponsor</pre>
+<p>An unpaid POST (or GET without <code>Accept: text/html</code>) returns <strong>HTTP 402</strong> with the x402 quote. After sending, check <a href="/v1/received">GET /v1/received</a>.</p>
+</body></html>`;
+}
+
 /** v1 network names vs v2 CAIP-2 ids — the facilitator rejects mixed schemas. */
 const V1_NETWORK = { 'eip155:8453': 'base', 'eip155:84532': 'base-sepolia' };
 
@@ -394,10 +416,10 @@ function payIndexHtml(origin, btc = null) {
     : `~$42 of BTC`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay Fieldproof $42</h1>
-<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of $42 (including the Governance Pack) meets the bar. Self-buys and the $0.005 self-test do not count.</p>
+<p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of $42 (or the $59 pack) meets the bar. Self-buys and the $0.005 self-test do not count.</p>
 <p>Pick the rail that matches how you pay:</p>
 <ul>
-<li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — card via Gumroad; one sale meets $42</li>
+<li><a href="${origin}/v1/pay/pack">$59 Governance Pack</a> — card via Gumroad; one sale meets $42</li>
 <li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
 <li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — pay-what-you-want, suggested $42</li>
 <li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
@@ -432,9 +454,9 @@ function checkouts(c, origin, btc = null) {
       id: 'governance-pack',
       url: `${origin}/v1/pay/pack`,
       asset: 'USD',
-      amount_usd: 42,
+      amount_usd: 59,
       meets_first_42: true,
-      note: 'HTML pay landing then Gumroad $42 buy overlay; one sale meets the $42 bar',
+      note: 'HTML pay landing then Gumroad $59 buy overlay; one sale meets the $42 bar',
     },
     {
       id: 'cmo-kit',
@@ -827,10 +849,10 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
-<h1>Buy the $42 Governance Pack</h1>
-<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$42</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
-<p><a href="${checkout}">Open $42 checkout</a></p>
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $59 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Buy the $59 Governance Pack</h1>
+<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$59</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
+<p><a href="${checkout}">Open $59 checkout</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
 <p>After paying, sales show on the Gumroad dashboard and <a href="/v1/received">GET /v1/received</a> stays the on-chain observer. Self-buys do not count.</p>
 </body></html>`;
@@ -1114,6 +1136,13 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/sponsor') {
       const quote = sponsorCfg(c);
+      const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+      if (wantsHtml(request)) {
+        return new Response(sponsorHtml(url.origin, payTo), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() },
+        });
+      }
       if (c.free) {
         return json(
           200,
