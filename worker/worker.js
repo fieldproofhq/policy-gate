@@ -889,6 +889,43 @@ function humansTxt(origin) {
   ].join('\n');
 }
 
+function nodeInfoIndex(origin) {
+  return {
+    links: [
+      {
+        rel: 'http://nodeinfo.diaspora.software/ns/schema/2.1',
+        href: `${origin}/nodeinfo/2.1`,
+      },
+    ],
+  };
+}
+
+function nodeInfo21(origin) {
+  return {
+    version: '2.1',
+    software: {
+      name: 'fieldproof-policy-gate',
+      version: '0.2',
+      repository: 'https://github.com/fieldproofhq/policy-gate',
+      homepage: 'https://fieldproofhq.github.io/',
+    },
+    protocols: ['x402'],
+    services: { inbound: [], outbound: [] },
+    openRegistrations: false,
+    usage: { users: { total: 0 }, localPosts: 0 },
+    metadata: {
+      nodeName: 'Fieldproof',
+      nodeDescription: 'Pay $42 with card or 42 USDC on Base.',
+      payment: STRIPE_PAYMENT_LINK,
+      invoice: `${origin}/v1/invoice`,
+      card_uri: `${origin}/v1/pay/card.uri`,
+      usdc_uri: `${origin}/v1/pay/usdc.uri`,
+      btc_uri: `${origin}/v1/pay/btc.uri`,
+      zelle_uri: `${origin}/v1/pay/zelle.uri`,
+    },
+  };
+}
+
 function securityTxt(origin) {
   return [
     'Contact: mailto:3labsio@gmail.com',
@@ -919,6 +956,20 @@ function openApiSpec(origin) {
     servers: [{ url: origin }],
     externalDocs: { description: 'Pay $42 with card', url: STRIPE_PAYMENT_LINK },
     paths: {
+      '/.well-known/nodeinfo': {
+        get: {
+          operationId: 'nodeInfoIndex',
+          summary: 'NodeInfo index. Follow the 2.1 link for payment metadata.',
+          responses: { 200: { description: 'NodeInfo well-known index' } },
+        },
+      },
+      '/nodeinfo/2.1': {
+        get: {
+          operationId: 'nodeInfo21',
+          summary: 'NodeInfo 2.1 document. metadata.payment is the live $42 Stripe checkout.',
+          responses: { 200: { description: 'NodeInfo 2.1 with payment metadata' } },
+        },
+      },
       '/.well-known/webfinger': {
         get: {
           operationId: 'webfinger',
@@ -1868,6 +1919,8 @@ export default {
         `${url.origin}/.well-known/humans.txt`,
         `${url.origin}/.well-known/webfinger`,
         `${url.origin}/.well-known/host-meta`,
+        `${url.origin}/.well-known/nodeinfo`,
+        `${url.origin}/nodeinfo/2.1`,
         `${url.origin}/.well-known/llms.txt`,
         `${url.origin}/llms-full.txt`,
         `${url.origin}/package.json`,
@@ -1923,6 +1976,7 @@ export default {
         `- security.txt: ${url.origin}/.well-known/security.txt`,
         `- humans.txt: ${url.origin}/humans.txt`,
         `- WebFinger: ${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
+        `- NodeInfo: ${url.origin}/.well-known/nodeinfo`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2309,6 +2363,14 @@ ${cardFallbackHtml()}
       return json(200, mcpDiscovery(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
+    if (request.method === 'GET' && url.pathname === '/.well-known/nodeinfo') {
+      return json(200, nodeInfoIndex(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/nodeinfo/2.1' || url.pathname === '/.well-known/nodeinfo/2.1')) {
+      return json(200, nodeInfo21(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
     if (request.method === 'GET' && url.pathname === '/.well-known/webfinger') {
       const resource = url.searchParams.get('resource');
       if (!resource) {
@@ -2436,6 +2498,7 @@ ${cardFallbackHtml()}
             security: `${url.origin}/.well-known/security.txt`,
             humans: `${url.origin}/humans.txt`,
             webfinger: `${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
+            nodeinfo: `${url.origin}/.well-known/nodeinfo`,
           },
         },
         {},
