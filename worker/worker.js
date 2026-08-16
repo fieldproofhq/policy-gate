@@ -2402,20 +2402,30 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
           true
         );
       }
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title>
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
-<p>Send <strong>$42 USD</strong> via Zelle. Zero fees.</p>
+<p>Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account.</p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
 <li>Amount: <strong>$42.00</strong></li>
 <li>To: <a href="mailto:3labsio@gmail.com"><strong>3labsio@gmail.com</strong></a></li>
 <li>Memo: <strong>Fieldproof</strong></li>
 </ul>
+<p><a href="${payUri}" id="fp-zelle-open" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open $42 Zelle memo</a></p>
 ${copyPayControls('3labsio@gmail.com', '42.00', 'Copy email', 'Copy $42')}
-<p><a href="${payUri}">Open in mail</a></p>
 ${cardFallbackHtml()}
+<script>
+(function(){
+  var PAY_URI = ${JSON.stringify(payUri)};
+  if (PAY_URI && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    location.replace(PAY_URI);
+  }
+})();
+</script>
 </body></html>`;
-      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/usdc.uri' || url.pathname === '/v1/pay/usdc.txt')) {
