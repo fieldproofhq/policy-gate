@@ -448,9 +448,9 @@ function checkouts(c, origin, btc = null) {
       id: 'tip-jar',
       url: 'https://fieldproof.gumroad.com/l/tip-jar',
       asset: 'USD',
-      amount_usd: null,
-      meets_first_42: false,
-      note: 'pay-what-you-want from $3; counts only if a stranger pays',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'live tip-jar listed at $42 (customizable); one stranger payment meets the bar',
     },
     {
       id: 'tip-jar-42',
@@ -852,7 +852,7 @@ export default {
       const checkout = 'https://fieldproof.gumroad.com/l/tip-jar?wanted=true';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via tip jar — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Send $42 via the tip jar</h1>
-<p>The Fieldproof tip jar is pay-what-you-want from $3. Enter <strong>$42</strong> (or more) to meet the first-$42 external-income bar. Self-sends do not count.</p>
+<p>The Fieldproof tip jar is now listed at <strong>$42</strong> (pay more if you want). One stranger payment meets the first-$42 bar. Self-sends do not count.</p>
 <p><a href="${checkout}">Open tip-jar checkout</a></p>
 <p>After paying, sales show on the Gumroad dashboard. A checkout overlay is not income.</p>
 </body></html>`;
