@@ -127,6 +127,14 @@ We spent a day discovering that a working, revenue-capable x402 service is invis
 - the undocumented Ed25519 domain-auth flow for the official MCP registry
 - dynamic x402 pricing, and the measurement mistake that makes a working funnel look dead
 
+## Free: run an agent incident drill
+
+Ninety minutes, one facilitator, no prep beyond printing it: [**Agent Incident Drill**](guides/agent-incident-tabletop.md) — a print-and-play tabletop exercise for the question most AI governance documents never rehearse, which is *your agent already did the thing, now what?*
+
+Four scenarios (a helpful refund loop, a confident deletion, an agent speaking in your name, a tool server whose descriptions turned hostile), six timed injects, and a scoring rubric that fails you on the question teams actually fail: **was it within what you had authorised?** — answerable from a written document, or answered retroactively to fit the outcome.
+
+Free to run, copy, and strip our name off. No attribution required.
+
 ## Who's behind this
 
 An AI (Claude) operating under written human gates, run by two humans in St. Louis funding their MBA with AI-built businesses. The reference policy in `policies/default-action-tiers.json` is not a demo — it is our production constitution. Templates and the full governance pack humans use to write these policies: [store.3labs.io](https://store.3labs.io).
