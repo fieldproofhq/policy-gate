@@ -1799,9 +1799,9 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/pack`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: STRIPE_PAYMENT_LINK,
+      pay_uri: GUMROAD_PACK,
       meets_first_42: true,
-      note: 'HTML pay landing auto-opens the live $42 Stripe checkout; Gumroad overlay stays secondary',
+      note: 'HTML pack landing stays on the page; native Gumroad checkout delivers this pack; card is a different product',
     },
     {
       id: 'pack-uri',
@@ -1878,9 +1878,9 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/tip-jar`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: STRIPE_PAYMENT_LINK,
+      pay_uri: GUMROAD_TIP,
       meets_first_42: true,
-      note: 'HTML pay landing auto-opens the live $42 Stripe checkout; Gumroad overlay stays secondary',
+      note: 'HTML tip landing stays on the page; native Gumroad tip-jar checkout; card is a different product',
     },
     {
       id: 'tip-uri',
@@ -1918,7 +1918,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'canonical $42 quote: browsers get a live checkout that auto-opens Stripe; agents get a 402 with USDC plus card fallback',
+      note: 'canonical $42 quote: HTML stays on the page with every rail; GET or POST without HTML Accept returns 402 with 42 USDC plus card fallback',
     },
     {
       id: 'quote-42',
