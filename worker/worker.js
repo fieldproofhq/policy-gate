@@ -825,8 +825,7 @@ function walletPayControls(payTo, payUri) {
     say("Opening your wallet…");
     location.replace(PAY_URI);
   } else {
-    say("No browser wallet. Opening card checkout…");
-    location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});
+    say("No browser wallet. Use the QR, the wallet link, or Pay $42 with card.");
   }
 })();
 </script>`;

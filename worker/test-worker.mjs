@@ -704,6 +704,8 @@ assert.doesNotMatch(payPage, /private[_ ]?key/i);
 assert.match(payPage, /Pay \$42 with card/);
 assert.match(payPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.doesNotMatch(payPage, /http-equiv="refresh"/);
+assert.doesNotMatch(payPage, /Opening card checkout/);
+assert.doesNotMatch(payPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
 const zelle = listed.checkouts.find((o) => o.id === 'zelle');
 assert.equal(zelle.amount_usd, 42);
 assert.equal(zelle.meets_first_42, true);
