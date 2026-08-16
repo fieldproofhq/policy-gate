@@ -1239,6 +1239,41 @@ export default {
       return Response.redirect(STRIPE_PAYMENT_LINK, 302);
     }
 
+    if (request.method === 'GET' && url.pathname === '/robots.txt') {
+      const body = [
+        'User-agent: *',
+        'Allow: /',
+        `Sitemap: ${url.origin}/sitemap.xml`,
+        '',
+      ].join('\n');
+      return new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/plain; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+      });
+    }
+
+    if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
+      const locs = [
+        `${url.origin}/pay`,
+        `${url.origin}/v1/pay`,
+        `${url.origin}/v1/pay/card`,
+        `${url.origin}/v1/sponsor`,
+        `${url.origin}/mcp`,
+        `${url.origin}/.well-known/x402`,
+        `${url.origin}/.well-known/pay`,
+        STRIPE_PAYMENT_LINK,
+      ];
+      const xml =
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+        locs.map((loc) => `  <url><loc>${loc}</loc></url>`).join('\n') +
+        '\n</urlset>\n';
+      return new Response(xml, {
+        status: 200,
+        headers: { 'content-type': 'application/xml; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+      });
+    }
+
     if (request.method === 'GET' && url.pathname === '/llms.txt') {
       const body = [
         '# Fieldproof',
