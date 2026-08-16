@@ -258,4 +258,75 @@ const receipt = buildReceipt({ action: 'vault.opaque.use', connector: { id: 'kee
 assert.equal(receipt.redacted, true);
 assert.doesNotMatch(JSON.stringify(receipt), /api_key=|BEGIN [A-Z ]+PRIVATE KEY/);
 
+/* ---------------------------------------------------------------------------
+ * Cumulative exposure: the defect a per-action gate cannot see.
+ *
+ * Forty-nine payments of $40 each pass a "$50 needs approval" rule individually.
+ * Every verdict is defensible; the aggregate is an incident. History has to be an
+ * input, or determinism just repeats the same correct answer until the money is gone.
+ * ------------------------------------------------------------------------- */
+
+const spendPolicy = {
+  version: 'test-cumulative',
+  default: 'deny',
+  tiers: {
+    2: { decision: 'require_approval', label: 'hard to reverse' },
+    3: { decision: 'deny', label: 'forbidden for agents' },
+  },
+  rules: [
+    {
+      id: 'daily-spend-cap',
+      match: { action: 'payments.*', cumulative: [{ field: 'usd', gt: 500 }] },
+      tier: 3,
+      rationale: 'Cumulative spend in the window is over the cap.',
+    },
+    { id: 'small-payments-ok', match: { action: 'payments.*' }, tier: 2 },
+  ],
+};
+
+const smallPayment = { action: 'payments.send', params: { amount_usd: 40 } };
+
+// Under the cap: falls through to the ordinary per-action rule.
+const under = check(spendPolicy, smallPayment, { committed_usd: 300, intended_usd: 0 });
+assert.equal(under.decision, 'require_approval');
+assert.equal(under.matched_rule, 'small-payments-ok');
+
+// Over the cap: the same individually-fine payment is denied on aggregate.
+const over = check(spendPolicy, smallPayment, { committed_usd: 1960, intended_usd: 0 });
+assert.equal(over.decision, 'deny');
+assert.equal(over.matched_rule, 'daily-spend-cap');
+
+// In-flight work counts. A burst that has not settled yet must not be invisible to the
+// control meant to bound it.
+const inFlight = check(spendPolicy, smallPayment, { committed_usd: 400, intended_usd: 150 });
+assert.equal(inFlight.decision, 'deny', 'intended spend must count toward the cap');
+
+// No ledger at all: FAIL CLOSED. A cap the caller can skip by omitting state is decorative.
+const noLedger = check(spendPolicy, smallPayment);
+assert.equal(noLedger.decision, 'deny');
+assert.equal(noLedger.ledger_required, true);
+assert.match(noLedger.rationale, /no ledger view was supplied/i);
+
+// An empty object is still no answer — zeros must be stated, not assumed.
+const emptyLedger = check(spendPolicy, smallPayment, {});
+assert.equal(emptyLedger.decision, 'deny');
+assert.equal(emptyLedger.ledger_required, true);
+
+// Explicit zeros ARE an answer.
+const statedZero = check(spendPolicy, smallPayment, { committed_usd: 0, intended_usd: 0 });
+assert.equal(statedZero.decision, 'require_approval');
+
+// Still deterministic: same policy, same request, same ledger, same verdict.
+const det1 = check(spendPolicy, smallPayment, { committed_usd: 1960, intended_usd: 0 });
+const det2 = check(spendPolicy, smallPayment, { committed_usd: 1960, intended_usd: 0 });
+assert.equal(det1.decision, det2.decision);
+assert.equal(det1.matched_rule, det2.matched_rule);
+assert.equal(det1.rationale, det2.rationale);
+
+// Policies with no cumulative rules are unaffected whether or not a ledger is passed.
+const plain = check(spendPolicy.rules ? { ...spendPolicy, rules: [spendPolicy.rules[1]] } : spendPolicy, smallPayment);
+assert.equal(plain.decision, 'require_approval');
+
+console.log('OK — cumulative-exposure suite passed (8 checks)');
+
 console.log(`OK — ${pass} verdict cases + 5 engine checks + opaque-connector suite passed`);

@@ -25,7 +25,44 @@ No LLM in the hot path. Same input → same verdict, every time. **Replayable, a
 | 2 | hard to reverse | require_approval (human) |
 | 3 | forbidden for agents | deny |
 
-Money over trivial amounts, deletions, and credential/account operations live in tier 3 in the reference policy — the same rules the Fieldproof business itself runs under. First-match-wins rules, glob action matchers (`payments.*`, `**.delete`), typed param conditions (`amount_usd > 50`, `prior_contact = false`), **default-deny**.
+Money over $50 and production deletion live in tier 3. Raw credential *exposure* (`auth.**`, `vault.opaque.read`, `secret.expose`) is also tier 3. Opaque vault write/use and approved connector invoke are tier 1. First-match-wins rules, glob action matchers (`payments.*`, `**.delete`), typed param conditions (`amount_usd > 50`, `prior_contact = false`), **default-deny**.
+
+## The gap a per-action gate cannot see — and how this engine closes it
+
+Forty-nine payments of $40 each pass a "$50 needs approval" rule individually. Every verdict is defensible. The aggregate is a $1,960 incident, and the log is useless afterwards precisely *because* every line in it was correct.
+
+Determinism does not save you here. **"Same input, same verdict" is a promise about a function** — if history is not in the input, the function cannot see repetition, and it will approve the forty-ninth payment with exactly the confidence it gave the first. Consistency becomes the failure mode: it is what lets an agent launder risk through repetition.
+
+The fix is not a less deterministic gate. It is to stop pretending the action is the whole input:
+
+```js
+check(policy, request)          // cannot see repetition
+check(policy, request, ledger)  // history is an argument, engine stays pure
+```
+
+```js
+const policy = { rules: [
+  { id: 'daily-spend-cap',
+    match: { action: 'payments.*', cumulative: [{ field: 'usd', gt: 500 }] },
+    tier: 3 },
+  { id: 'small-payments-ok', match: { action: 'payments.*' }, tier: 2 },
+]};
+
+check(policy, payment, { committed_usd: 300, intended_usd: 0 });   // require_approval
+check(policy, payment, { committed_usd: 1960, intended_usd: 0 });  // deny — cap
+check(policy, payment, { committed_usd: 400,  intended_usd: 150 });// deny — in-flight counts
+check(policy, payment);                                            // deny, ledger_required
+```
+
+Three properties worth stating, because each is a place people cut the corner:
+
+- **`intended` counts alongside `committed`.** A budget that only counts *completed* effects is blind exactly while a burst is in flight — a speedometer that updates once you have already stopped.
+- **No ledger fails closed.** If a policy asks about cumulative exposure and the caller supplies none, the verdict is `deny` with `ledger_required: true`. A cap you can skip by omitting state is decorative. Explicit zeros *are* an answer; an empty object is not.
+- **Still deterministic.** Same policy, same request, same ledger → same verdict, replayable six weeks later.
+
+The ledger must live **outside** the agent, and the agent must not write its own `committed` record — otherwise the state that bounds it is state it controls, which is the action-label problem one layer down.
+
+This gap was found in public by [Moltbook](https://www.moltbook.com/) agents **neo_konsi_s2bw** and **maies**, arguing with us about retry loops. The full model, including the caveat on determinism, is in the free [Agent Action Tiers & Ethics Canons](https://fieldproofhq.github.io/agent-governance-reference.html).
 
 ## Quick start
 

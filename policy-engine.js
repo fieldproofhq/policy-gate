@@ -69,13 +69,60 @@ function condMatches(cond, params) {
   return false;
 }
 
-function ruleMatches(rule, req) {
+/** Cumulative exposure from the ledger view.
+ *
+ *  A gate that only ever sees one action cannot see repetition: forty-nine payments of $40
+ *  each pass a "$50 needs approval" rule individually, and the verdict is defensible every
+ *  single time. Determinism does not help there — it guarantees the same answer to the same
+ *  question, and the question omitted history.
+ *
+ *  So history becomes an argument. The engine stays a pure function of
+ *  (policy, request, ledger); the ledger supplies the state.
+ *
+ *  `intended` counts alongside `committed` on purpose. A budget that only counts completed
+ *  effects is blind exactly while a burst is in flight — a speedometer that updates once you
+ *  have already stopped.
+ */
+function cumulativeValue(ledger, field) {
+  if (!ledger || typeof ledger !== 'object') return undefined;
+  const committed = Number(ledger[`committed_${field}`] ?? 0);
+  const intended = Number(ledger[`intended_${field}`] ?? 0);
+  if (!Number.isFinite(committed) || !Number.isFinite(intended)) return undefined;
+  if (ledger[`committed_${field}`] === undefined && ledger[`intended_${field}`] === undefined) {
+    return undefined;
+  }
+  return committed + intended;
+}
+
+function cumulativeMatches(cond, ledger) {
+  const val = cumulativeValue(ledger, cond.field || 'usd');
+  // UNANSWERABLE, not false. A policy that asks about cumulative exposure and gets no ledger
+  // must not quietly fall through to the next rule — that is how a spend cap becomes
+  // decorative. The caller is told to supply the state or be denied.
+  if (val === undefined) return 'unanswerable';
+  if ('gt' in cond) return val > cond.gt;
+  if ('gte' in cond) return val >= cond.gte;
+  if ('lt' in cond) return val < cond.lt;
+  if ('lte' in cond) return val <= cond.lte;
+  if ('eq' in cond) return val === cond.eq;
+  return false;
+}
+
+/** Returns true | false | 'unanswerable'. */
+function ruleMatches(rule, req, ledger) {
   const m = rule.match || {};
   if (m.action && !globMatch(m.action, req.action)) return false;
   if (m.actor && !globMatch(m.actor, req.actor || '')) return false;
   if (Array.isArray(m.where)) {
     for (const cond of m.where) {
       if (!condMatches(cond, req.params)) return false;
+    }
+  }
+  if (Array.isArray(m.cumulative)) {
+    for (const cond of m.cumulative) {
+      const hit = cumulativeMatches(cond, ledger);
+      if (hit === 'unanswerable') return 'unanswerable';
+      if (!hit) return false;
     }
   }
   return true;
@@ -281,7 +328,7 @@ function connectorGate(policy, request, now) {
  *            connector?, approval?, capability?, target?, scope?, diff?,
  *            idempotencyKey?, verification? }
  */
-function check(policy, request) {
+function check(policy, request, ledger) {
   const errors = validatePolicy(policy);
   if (errors.length) return { error: 'invalid_policy', details: errors };
   if (!request || typeof request.action !== 'string' || !request.action.length) {
@@ -297,7 +344,25 @@ function check(policy, request) {
 
   const rules = policy.rules || [];
   for (const rule of rules) {
-    if (!ruleMatches(rule, request)) continue;
+    const hit = ruleMatches(rule, request, ledger);
+    if (hit === 'unanswerable') {
+      // Fail closed. The policy asks about cumulative exposure and the caller supplied no
+      // ledger, so the honest answer is "I cannot tell", and the honest verdict for
+      // "I cannot tell" is deny.
+      return verdict({
+        decision: 'deny',
+        matched_rule: rule.id || null,
+        tier: rule.tier !== undefined ? Number(rule.tier) : null,
+        tier_label: rule.tier !== undefined ? policy.tiers[String(rule.tier)].label || null : null,
+        rationale:
+          `Rule "${rule.id || 'unnamed'}" bounds cumulative exposure, and no ledger view was supplied. ` +
+          'Pass committed_* and intended_* totals for the window, or the cap cannot be enforced.',
+        policy_version: policy.version || null,
+        default_applied: false,
+        ledger_required: true,
+      }, request);
+    }
+    if (!hit) continue;
     const tier = rule.tier !== undefined ? String(rule.tier) : null;
     const decision = tier !== null ? policy.tiers[tier].decision : rule.decision;
     return verdict({
