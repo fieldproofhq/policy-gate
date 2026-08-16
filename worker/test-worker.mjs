@@ -462,6 +462,9 @@ assert.match(btcPage, /data-copy="bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t"/);
 assert.match(btcPage, /Copy address/);
 assert.match(btcPage, /Copy invoice/);
 assert.match(btcPage, /navigator\.clipboard/);
+assert.match(btcPage, /Open in wallet \(BIP21\)/);
+assert.match(btcPage, /location\.replace\(PAY_URI\)/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 assert.match(btcPage, /Pay \$42 with card/);
 assert.match(btcPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 
