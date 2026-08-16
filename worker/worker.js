@@ -1233,6 +1233,13 @@ function openApiSpec(origin) {
           responses: { 200: { description: 'text/uri-list; one bitcoin: URI with amount' } },
         },
       },
+      '/v1/pay/scan': {
+        get: {
+          operationId: 'payScan',
+          summary: 'QR board for 42 USDC, BIP21 Bitcoin, and $42 Zelle. Does not auto-open card checkout.',
+          responses: { 200: { description: 'HTML scan board' } },
+        },
+      },
       '/v1/pay/btc.png': {
         get: {
           operationId: 'payBtcQr',
@@ -1547,6 +1554,7 @@ function payIndexHtml(origin, btc = null) {
 </ul>
 <p>Or pay another way:</p>
 <ul>
+<li><a href="${origin}/v1/pay/scan">Scan USDC, Bitcoin, or Zelle</a> — QR board, no card redirect</li>
 <li><a href="${origin}/v1/sponsor">42 USDC / x402</a> — in-browser wallet, QR, or agent POST /v1/sponsor</li>
 <li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — in-browser wallet, EIP-681, QR</li>
 <li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com</li>
@@ -1555,6 +1563,36 @@ function payIndexHtml(origin, btc = null) {
 </ul>
 <p>More: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
 <script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+</body></html>`;
+}
+
+function scanPaysHtml(origin, btc = null) {
+  const payTo = '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+  const sats = btc?.satsFor42 || null;
+  const usdcUri = usdcEip681(payTo);
+  const btcUri = btcBip21(sats);
+  const zelleUri = zelleMailto();
+  const btcLabel = sats ? `${sats} sats (~$${GOAL_USD})` : '~$42 of BTC';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Scan $42 — USDC, Bitcoin, Zelle</title>
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:52rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Scan $42</h1>
+<p>Three stranger-payable rails. This page does not open card checkout. One $42 receipt on any rail meets the bar.</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem">
+<figure style="margin:0;background:#fff;border:1px solid #e6e1d8;border-radius:16px;padding:1rem;text-align:center">
+<a href="${usdcUri}"><img src="${usdcQrUrl(payTo)}" width="240" height="240" alt="QR for 42 USDC on Base"></a>
+<figcaption><a href="${origin}/v1/pay/usdc">42 USDC on Base</a></figcaption>
+</figure>
+<figure style="margin:0;background:#fff;border:1px solid #e6e1d8;border-radius:16px;padding:1rem;text-align:center">
+<a href="${btcUri}"><img src="${btcQrUrl(sats)}" width="240" height="240" alt="QR for Bitcoin BIP21"></a>
+<figcaption><a href="${origin}/v1/pay/btc">${btcLabel}</a><br><span style="word-break:break-all;font-size:.8rem">${BTC_ADDRESS}</span></figcaption>
+</figure>
+<figure style="margin:0;background:#fff;border:1px solid #e6e1d8;border-radius:16px;padding:1rem;text-align:center">
+<a href="${zelleUri}"><img src="${zelleQrUrl()}" width="240" height="240" alt="QR for $42 Zelle"></a>
+<figcaption><a href="${origin}/v1/pay/zelle">$42 Zelle</a> · 3labsio@gmail.com</figcaption>
+</figure>
+</div>
+<p>Prefer card? <a href="${STRIPE_PAYMENT_LINK}">Pay $42 with card</a> · store: <a href="https://store.3labs.io">store.3labs.io</a></p>
 </body></html>`;
 }
 
@@ -1605,6 +1643,14 @@ function checkouts(c, origin, btc = null) {
       amount_usd: 42,
       meets_first_42: false,
       note: 'one page listing every live rail; pick the $42 path that matches the payer',
+    },
+    {
+      id: 'scan-board',
+      url: `${origin}/v1/pay/scan`,
+      asset: 'USD',
+      amount_usd: 42,
+      meets_first_42: true,
+      note: 'QR board for 42 USDC, BIP21 Bitcoin, and $42 Zelle; no card auto-open; one stranger payment on any rail meets the bar',
     },
     {
       id: 'stripe-payment-link',
@@ -2326,6 +2372,7 @@ export default {
         `${url.origin}/v1/pay/usdc.uri`,
         `${url.origin}/v1/pay/usdc.png`,
         `${url.origin}/v1/pay/btc.uri`,
+        `${url.origin}/v1/pay/scan`,
         `${url.origin}/v1/pay/btc.png`,
         `${url.origin}/v1/pay/zelle.uri`,
         `${url.origin}/v1/pay/zelle.png`,
@@ -2440,6 +2487,7 @@ export default {
         `- POST /v1/sponsor x402: ${url.origin}/v1/sponsor`,
         `- Bitcoin: ${url.origin}/v1/pay/btc`,
         `- Bitcoin BIP-21 (text/uri-list): ${url.origin}/v1/pay/btc.uri`,
+        `- Scan board (USDC + BTC + Zelle QRs): ${url.origin}/v1/pay/scan`,
         `- Bitcoin QR (scannable): ${url.origin}/v1/pay/btc.png`,
         `- Zelle $42 to 3labsio@gmail.com: ${url.origin}/v1/pay/zelle`,
         `- Zelle mailto (text/uri-list): ${url.origin}/v1/pay/zelle.uri`,
@@ -2458,6 +2506,15 @@ export default {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
       return new Response(payIndexHtml(url.origin, btc), { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/scan' || url.pathname === '/v1/pay/scan/')) {
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      return new Response(scanPaysHtml(url.origin, btc), {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+      });
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/x402') {
@@ -3189,6 +3246,7 @@ ${cardFallbackHtml()}
             btc: `${url.origin}/v1/pay/btc`,
             btc_uri: `${url.origin}/v1/pay/btc.uri`,
             btc_qr: `${url.origin}/v1/pay/btc.png`,
+            scan: `${url.origin}/v1/pay/scan`,
             zelle: `${url.origin}/v1/pay/zelle`,
             zelle_uri: `${url.origin}/v1/pay/zelle.uri`,
             zelle_qr: `${url.origin}/v1/pay/zelle.png`,
