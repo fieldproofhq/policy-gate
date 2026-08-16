@@ -997,6 +997,17 @@ for (const e of ex.examples) {
   assert.strictEqual(e.verdict.decision, live.decision, `${e.label}: example drifted from the engine`);
   assert.strictEqual(e.verdict.matched_rule, live.matched_rule, `${e.label}: rule drifted from the engine`);
 }
+res = await call(paidEnv, 'GET', '/v1/example', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const examplePage = await res.text();
+assert.match(examplePage, /Pay \$42 with card/);
+assert.match(examplePage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(examplePage, /http-equiv="refresh"/);
+assert.match(examplePage, /location\.replace/);
+assert.match(examplePage, /<strong>allow<\/strong>/);
+assert.match(examplePage, /<strong>deny<\/strong>/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 /* and they must cover the full decision range, or they are advertising rather than showing */
 const decisions = new Set(ex.examples.map((e) => e.verdict.decision));
 assert.ok(decisions.has('allow') && decisions.has('require_approval') && decisions.has('deny'),
