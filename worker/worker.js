@@ -2811,6 +2811,14 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/x402') {
+      if (wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const fallback = stripeFallbackOffer();
       return json(
         200,

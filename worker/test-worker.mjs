@@ -1127,6 +1127,15 @@ assert.ok(wk.resources[0].url.endsWith('/v1/check'), 'manifest points at the pai
 assert.strictEqual(wk.resources[0].accepts[0].payTo, paidEnv.PAY_TO, 'manifest quotes the real payee');
 assert.equal(wk.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
 assert.equal(wk.resources[0].fallback.url, wk.fallback.url);
+res = await call(paidEnv, 'GET', '/.well-known/x402', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const wellKnownX402Page = await res.text();
+assert.match(wellKnownX402Page, /Pay \$42 with card/);
+assert.match(wellKnownX402Page, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(wellKnownX402Page, /http-equiv="refresh"/);
+assert.match(wellKnownX402Page, /location\.replace/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 res = await call(paidEnv, 'GET', '/v1/check');
 assert.strictEqual(res.status, 200, 'GET documents the route; health probes read non-2xx as a dead service');
