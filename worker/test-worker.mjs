@@ -57,6 +57,15 @@ res = await call(freeEnv, 'GET', '/');
 assert.strictEqual(res.status, 200);
 let info = await res.json();
 assert.strictEqual(info.pricing.mode, 'free');
+assert.ok(Array.isArray(info.checkouts));
+const pack = info.checkouts.find((o) => o.id === 'governance-pack');
+assert.equal(pack.amount_usd, 59);
+assert.equal(pack.meets_first_42, true);
+assert.match(pack.url, /agentic-ai-governance-pack/);
+res = await call(freeEnv, 'GET', '/v1/checkouts');
+assert.strictEqual(res.status, 200);
+const listed = await res.json();
+assert.ok(listed.checkouts.some((o) => o.id === 'tip-jar' && o.url.includes('tip-jar')));
 
 res = await call(freeEnv, 'GET', '/v1/policies');
 assert.deepStrictEqual((await res.json()).policies, ['default-action-tiers']);

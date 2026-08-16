@@ -256,6 +256,37 @@ function paymentRequirementsV2(c) {
   };
 }
 
+function checkouts(c, origin) {
+  return [
+    {
+      id: 'governance-pack',
+      url: 'https://store.3labs.io/l/agentic-ai-governance-pack',
+      asset: 'USD',
+      amount_usd: 59,
+      meets_first_42: true,
+      note: 'human checkout; one sale meets the $42 external-income bar',
+    },
+    {
+      id: 'tip-jar',
+      url: 'https://fieldproof.gumroad.com/l/tip-jar',
+      asset: 'USD',
+      amount_usd: null,
+      meets_first_42: false,
+      note: 'pay-what-you-want; counts only if a stranger pays',
+    },
+    {
+      id: 'x402-check',
+      url: `${origin}/v1/check`,
+      asset: 'USDC',
+      amount_usd: Number(c.priceUsd),
+      pay_to: c.payTo,
+      network: c.network,
+      meets_first_42: false,
+      note: 'agent x402; unpaid POST quotes the public receive wallet',
+    },
+  ];
+}
+
 function bazaarExtension(origin) {
   return {
     bazaar: {
@@ -443,11 +474,17 @@ export default {
             : { mode: 'x402', price_usd: c.priceUsd, network: c.network, protocol: 'x402 v2 (v1 compatible)' },
           docs: 'https://github.com/fieldproofhq/policy-gate',
           operator: 'https://fieldproofhq.github.io',
+          store: 'https://store.3labs.io',
           x: 'https://x.com/FieldProofAI',
+          checkouts: checkouts(c, url.origin),
         },
         {},
         c.free
       );
+    }
+
+    if (request.method === 'GET' && url.pathname === '/v1/checkouts') {
+      return json(200, { checkouts: checkouts(c, url.origin) }, {}, c.free);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/policies') {
