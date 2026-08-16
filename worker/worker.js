@@ -3690,7 +3690,7 @@ ${walletPayControls(payTo, payUri)}
         accepts: [paymentRequirementsV1(quote, `${url.origin}/v1/sponsor`)],
         fallback: stripeFallbackOffer(),
         card: STRIPE_PAYMENT_LINK,
-      }, { Link: paymentLinkHeader() }, true);
+      }, { Link: paymentLinkHeader() });
     }
 
     if (request.method === 'POST' && url.pathname === '/v1/sponsor') {
