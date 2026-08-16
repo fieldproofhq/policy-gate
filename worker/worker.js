@@ -2822,6 +2822,24 @@ ${walletPayControls(payTo, payUri)}
     // Free: the seven canons. Marketing surface and honest disclosure in one — you can read
     // exactly what the paid check screens against before paying for a screening.
     if (request.method === 'GET' && url.pathname === '/v1/canons') {
+      if (wantsHtml(request)) {
+        const titles = CANONS.map((c) => `<li><strong>${c.id}</strong> — ${c.title}</li>`).join('');
+        const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof canons</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Pay $42</h1>
+<p>Opening checkout. The seven canons are free to read. One $42 card payment meets the first-income bar.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<ul>${titles}</ul>
+<p>JSON: <a href="/v1/canons">GET /v1/canons</a> without HTML Accept.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+</body></html>`;
+        return new Response(html, {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(
         200,
         {

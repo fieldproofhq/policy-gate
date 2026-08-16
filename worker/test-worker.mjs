@@ -1137,6 +1137,16 @@ const canons = await res.json();
 assert.strictEqual(canons.canons.length, 7, 'seven canons');
 assert.ok(canons.framing.includes('cannot see what you do not declare'),
   'the honest limitation must ship with the product, not just the marketing');
+res = await call(paidEnv, 'GET', '/v1/canons', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const canonsPage = await res.text();
+assert.match(canonsPage, /Pay \$42 with card/);
+assert.match(canonsPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(canonsPage, /http-equiv="refresh"/);
+assert.match(canonsPage, /location\.replace/);
+assert.match(canonsPage, /<ul>/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 res = await call(paidEnv, 'GET', '/v1/ethics-check');
 assert.strictEqual(res.status, 200, 'GET documents the paid route; non-2xx reads as dead to probes');
