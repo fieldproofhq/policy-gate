@@ -2754,17 +2754,15 @@ ${cardFallbackHtml()}
       }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 with card</h1>
-<p>Opening checkout. One <strong>$42</strong> payment — no Fieldproof account. <strong>Card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, <strong>US bank debit</strong>, <strong>Klarna</strong>, <strong>Afterpay</strong>, or <strong>Affirm</strong>.</p>
+<p>This page stays here so you can pick a rail. Card checkout delivers the Ethics Check and C-suite Word ZIPs, not the Governance Pack. <strong>Card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, <strong>US bank debit</strong>, <strong>Klarna</strong>, <strong>Afterpay</strong>, or <strong>Affirm</strong>.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
 <p><a href="${STRIPE_PAYMENT_LINK}"><img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
-<p>If nothing happens, use the button. Direct: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
-<p>After payment, download: <a href="${CFO_ZIP}">CFO kit</a> · <a href="${COO_ZIP}">COO kit</a> · <a href="${CTO_ZIP}">CTO kit</a> · <a href="${CISO_ZIP}">CISO kit</a> · <a href="${ETHICS_ZIP}">Ethics Check kit</a>.</p>
-<p>Also: <a href="https://store.3labs.io">store.3labs.io</a> · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>Direct: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
+<p>After a card payment, download: <a href="${CFO_ZIP}">CFO kit</a> · <a href="${COO_ZIP}">COO kit</a> · <a href="${CTO_ZIP}">CTO kit</a> · <a href="${CISO_ZIP}">CISO kit</a> · <a href="${ETHICS_ZIP}">Ethics Check kit</a>.</p>
+<p>Want the pack instead? <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>. Also: <a href="https://store.3labs.io">store.3labs.io</a> · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
