@@ -1782,9 +1782,9 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/pack.uri`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: STRIPE_PAYMENT_LINK,
+      pay_uri: GUMROAD_PACK,
       meets_first_42: true,
-      note: 'text/uri-list of the live $42 Stripe Payment Link; agents open the first URI',
+      note: 'text/uri-list of the live $42 Governance Pack on Gumroad; that checkout delivers this pack, not a different kit',
     },
     {
       id: 'cmo-kit',
@@ -2739,21 +2739,21 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/pack.uri' || url.pathname === '/v1/pay/pack.txt')) {
-      return uriListResponse(STRIPE_PAYMENT_LINK);
+      return uriListResponse(GUMROAD_PACK);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = GUMROAD_PACK;
-      if (wantsUriList(request)) return uriListResponse(STRIPE_PAYMENT_LINK);
+      if (wantsUriList(request)) return uriListResponse(GUMROAD_PACK);
       if (wantsJson(request)) {
         return json(
           200,
           {
-            scheme: 'stripe',
+            scheme: 'gumroad',
             asset: 'USD',
             amountUsd: GOAL_USD,
-            uri: STRIPE_PAYMENT_LINK,
-            url: STRIPE_PAYMENT_LINK,
+            uri: checkout,
+            url: checkout,
             product: 'agentic-ai-governance-pack',
             card: STRIPE_PAYMENT_LINK,
             gumroad: checkout,
@@ -2765,17 +2765,17 @@ ${cardFallbackHtml()}
       const overlay = 'https://fieldproof.gumroad.com/l/agentic-ai-governance-pack';
       const cover = 'https://public-files.gumroad.com/k5vh8fw0i5jkr4pzz9zveemcfjax';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
-<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+<meta http-equiv="refresh" content="0;url=${checkout}">
+<link rel="payment" href="${checkout}">
 <script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Governance Pack</h1>
-<p>Opening card checkout. Seven editable templates this AI-run business actually operates under. <strong>$42</strong>. No Fieldproof account. Or buy on Gumroad.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer"><img src="${cover}" alt="Agentic AI Governance Pack" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p>Opening the pack checkout. Seven editable templates this AI-run business actually operates under. <strong>$42</strong>. No Fieldproof account. The file is attached on Gumroad and downloads after payment. Generic card checkout is a different product.</p>
+<p><a href="${checkout}"><img src="${cover}" alt="Agentic AI Governance Pack" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
 <p style="font-size:1.25rem;font-weight:700">$42</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> <a class="gumroad-button" href="${overlay}">Buy the $42 pack</a> <a href="${checkout}">Gumroad overlay</a></p>
+<p><a class="gumroad-button" href="${overlay}">Buy the $42 pack</a> <a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> for the Ethics Check and C-suite Word ZIPs (not this pack).</p>
 ${cardFallbackHtml()}
-<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true">store.3labs.io pack</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>If nothing happens, use the button. Store: <a href="${checkout}">store.3labs.io pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
+<script>location.replace(${JSON.stringify(checkout)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -2880,17 +2880,17 @@ ${cardFallbackHtml()}
       const overlay = 'https://fieldproof.gumroad.com/l/fractional-cmo-launch-kit';
       const cover = 'https://public-files.gumroad.com/q8ndyh3mpngn25hk15p4pwuby0my';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $39 CMO Launch Kit — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
-<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+<meta http-equiv="refresh" content="0;url=${checkout}">
+<link rel="payment" href="${checkout}">
 <script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $39 Fractional CMO Launch Kit</h1>
-<p>Opening card checkout. Land a fractional CMO practice in 30 days — or load the same kit so an agent can hold the seat. One $42 card payment meets the first-income bar. Or stay and pay $39 on Gumroad.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer"><img src="${cover}" alt="Fractional CMO Launch Kit" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
-<p style="font-size:1.25rem;font-weight:700">$42 card · $39 Gumroad</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> <a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $39 CMO kit</a> <a href="${checkout}">Gumroad overlay</a></p>
+<p>Opening the $39 CMO kit. Land a fractional CMO practice in 30 days — or load the same kit so an agent can hold the seat. The file is attached on Gumroad and downloads after payment. Generic card checkout is a different product.</p>
+<p><a href="${checkout}"><img src="${cover}" alt="Fractional CMO Launch Kit" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p style="font-size:1.25rem;font-weight:700">$39</p>
+<p><a class="gumroad-button" href="${overlay}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $39 CMO kit</a> <a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> for the Ethics Check and C-suite Word ZIPs (not this CMO kit).</p>
 ${cardFallbackHtml()}
-<p>If nothing happens, use the button. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cmo/">fieldproofhq.github.io/csuite/cmo</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>If nothing happens, use the button. Agent contract: <a href="https://fieldproofhq.github.io/csuite/cmo/">fieldproofhq.github.io/csuite/cmo</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
+<script>location.replace(${JSON.stringify(checkout)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
