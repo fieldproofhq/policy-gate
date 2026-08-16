@@ -1118,8 +1118,8 @@ function openApiSpec(origin) {
       '/v1/invoice': {
         get: {
           operationId: 'invoice42',
-          summary: 'HTTP 200 multi-rail $42 invoice: Stripe URL, EIP-681, BIP-21, x402 sponsor, Zelle. Not a 402.',
-          responses: { 200: { description: 'JSON invoice. Accept text/uri-list for Stripe + wallet URIs.' } },
+          summary: 'HTTP 200 multi-rail $42 invoice. Browsers get an HTML checkout that auto-opens Stripe; agents get JSON or text/uri-list.',
+          responses: { 200: { description: 'HTML checkout (Accept: text/html), JSON invoice, or text/uri-list of live rails.' } },
         },
       },
       '/skills/pay/SKILL.md': {
@@ -1259,7 +1259,7 @@ function skillPayMd(origin) {
     '',
     '## Machine invoice',
     '',
-    `- GET ${origin}/v1/invoice  (HTTP 200 JSON, every rail)`,
+    `- GET ${origin}/v1/invoice  (HTML auto-opens Stripe; JSON / uri-list for agents)`,
     `- GET ${origin}/v1/pay/card.uri  (text/uri-list Stripe)`,
     `- GET ${origin}/v1/pay/usdc.uri  (text/uri-list EIP-681, 42 USDC on Base)`,
     `- GET ${origin}/v1/pay/btc.uri  (text/uri-list BIP-21)`,
@@ -1452,6 +1452,34 @@ function payIndexHtml(origin, btc = null) {
 </body></html>`;
 }
 
+function invoiceHtml(origin, payTo, btc = null) {
+  const usdcUri = usdcEip681(payTo);
+  const sats = btc?.satsFor42 || null;
+  const btcUri = btcBip21(sats);
+  const btcLabel = sats ? `${sats} sats (~$${GOAL_USD})` : `~$42 of BTC`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof invoice</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+<h1>Pay $42</h1>
+<p>Opening checkout. This invoice is $42. One payment meets the first-income bar.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+${walletPayControls(payTo, usdcUri)}
+<p>Other rails on this invoice:</p>
+<ul>
+<li><a href="${STRIPE_PAYMENT_LINK}">Card / Cash App / Link / bank / Klarna / Afterpay / Affirm</a></li>
+<li><a href="${usdcUri}">42 USDC on Base (EIP-681)</a></li>
+<li><a href="${btcUri}">${btcLabel} (BIP-21)</a></li>
+<li><a href="${zelleMailto()}">$42 Zelle to ${ZELLE_EMAIL}</a></li>
+<li><a href="${GUMROAD_PACK}">$42 Governance Pack</a></li>
+<li><a href="${GUMROAD_TIP}">$42 tip jar</a></li>
+<li><a href="${origin}/v1/sponsor">42 USDC x402 POST /v1/sponsor</a></li>
+</ul>
+<p>JSON: <a href="/v1/invoice">GET /v1/invoice</a> without HTML Accept. Agents: Accept text/uri-list.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+</body></html>`;
+}
+
 function checkouts(c, origin, btc = null) {
   const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
   return [
@@ -1585,7 +1613,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'HTTP 200 multi-rail invoice: Stripe, EIP-681, BIP-21, x402, Zelle. Not a 402.',
+      note: 'HTTP 200 multi-rail invoice; browsers auto-open the live $42 Stripe checkout; JSON and uri-list stay for agents',
     },
     {
       id: 'usdc-direct',
@@ -2114,7 +2142,7 @@ export default {
         `- Worker short URL: ${url.origin}/pay`,
         `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
         `- Directory quote alias (GET or POST 402): ${url.origin}/v1/quote`,
-        `- Multi-rail invoice (HTTP 200): ${url.origin}/v1/invoice`,
+        `- Multi-rail invoice (HTML auto-opens Stripe): ${url.origin}/v1/invoice`,
         `- MCP pay tool (first_42_sponsor): ${url.origin}/mcp`,
         `- Agent skill: ${url.origin}/skills/pay/SKILL.md`,
         `- npm funding (package.json): ${url.origin}/package.json`,
@@ -3063,7 +3091,12 @@ ${walletPayControls(payTo, payUri)}
         const lines = [STRIPE_PAYMENT_LINK, invoice.methods.find((m) => m.scheme === 'eip681')?.uri, invoice.methods.find((m) => m.scheme === 'bip21')?.uri, invoice.methods.find((m) => m.scheme === 'zelle')?.uri].filter(Boolean);
         return uriListResponse(lines.join('\n'));
       }
-      if (wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
+      if (url.pathname !== '/.well-known/invoice.json' && wantsHtml(request)) {
+        return new Response(invoiceHtml(url.origin, payTo, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(200, invoice, { Link: paymentLinkHeader() }, true);
     }
 

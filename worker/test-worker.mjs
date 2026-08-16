@@ -529,8 +529,16 @@ assert.ok(invoice.methods.some((m) => m.scheme === 'bip21' && /^bitcoin:bc1q/.te
 assert.ok(invoice.methods.some((m) => m.scheme === 'x402' && /\/v1\/sponsor$/.test(m.url)));
 assert.ok(invoice.methods.some((m) => m.scheme === 'zelle' && m.payTo === '3labsio@gmail.com'));
 res = await call(freeEnv, 'GET', '/v1/invoice', undefined, { accept: 'text/html' });
-assert.strictEqual(res.status, 302);
-assert.equal(res.headers.get('location'), 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const invoicePage = await res.text();
+assert.match(invoicePage, /Pay \$42 with card/);
+assert.match(invoicePage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(invoicePage, /http-equiv="refresh"/);
+assert.match(invoicePage, /location\.replace/);
+assert.match(invoicePage, /EIP-681/);
+assert.match(invoicePage, /3labsio@gmail.com/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 res = await call(freeEnv, 'GET', '/.well-known/invoice.json');
 assert.equal((await res.json()).id, 'fieldproof-42');
 res = await call(freeEnv, 'GET', '/openapi.json');
