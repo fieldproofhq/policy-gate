@@ -60,13 +60,51 @@ function condMatches(cond, params) {
   return false;
 }
 
-function ruleMatches(rule, req) {
+/** Cumulative exposure, mirroring the MIT engine in policy-engine.js.
+ *
+ *  A per-action gate cannot see repetition: 49 payments of $40 each pass a "$50 needs
+ *  approval" rule individually, and every verdict is defensible. Determinism does not help —
+ *  same input, same verdict is a promise about a function, and the question omitted history.
+ *  `intended` counts alongside `committed` so a burst still in flight is not invisible to the
+ *  control meant to bound it.
+ */
+function cumulativeValue(ledger, field) {
+  if (!ledger || typeof ledger !== 'object') return undefined;
+  if (ledger[`committed_${field}`] === undefined && ledger[`intended_${field}`] === undefined) {
+    return undefined;
+  }
+  const committed = Number(ledger[`committed_${field}`] ?? 0);
+  const intended = Number(ledger[`intended_${field}`] ?? 0);
+  if (!Number.isFinite(committed) || !Number.isFinite(intended)) return undefined;
+  return committed + intended;
+}
+
+function cumulativeMatches(cond, ledger) {
+  const val = cumulativeValue(ledger, cond.field || 'usd');
+  if (val === undefined) return 'unanswerable';
+  if ('gt' in cond) return val > cond.gt;
+  if ('gte' in cond) return val >= cond.gte;
+  if ('lt' in cond) return val < cond.lt;
+  if ('lte' in cond) return val <= cond.lte;
+  if ('eq' in cond) return val === cond.eq;
+  return false;
+}
+
+/** Returns true | false | 'unanswerable'. */
+function ruleMatches(rule, req, ledger) {
   const m = rule.match || {};
   if (m.action && !globMatch(m.action, req.action)) return false;
   if (m.actor && !globMatch(m.actor, req.actor || '')) return false;
   if (Array.isArray(m.where)) {
     for (const cond of m.where) {
       if (!condMatches(cond, req.params)) return false;
+    }
+  }
+  if (Array.isArray(m.cumulative)) {
+    for (const cond of m.cumulative) {
+      const hit = cumulativeMatches(cond, ledger);
+      if (hit === 'unanswerable') return 'unanswerable';
+      if (!hit) return false;
     }
   }
   return true;
@@ -93,7 +131,7 @@ function validatePolicy(policy) {
   return errors;
 }
 
-function check(policy, request) {
+function check(policy, request, ledger) {
   const errors = validatePolicy(policy);
   if (errors.length) return { error: 'invalid_policy', details: errors };
   if (!request || typeof request.action !== 'string' || !request.action.length) {
@@ -101,7 +139,24 @@ function check(policy, request) {
   }
   const rules = policy.rules || [];
   for (const rule of rules) {
-    if (!ruleMatches(rule, request)) continue;
+    const hit = ruleMatches(rule, request, ledger);
+    if (hit === 'unanswerable') {
+      // Fail closed: the policy bounds cumulative exposure and the caller sent no ledger.
+      // A cap you can skip by omitting state is decorative.
+      return {
+        decision: 'deny',
+        matched_rule: rule.id || null,
+        tier: rule.tier !== undefined ? Number(rule.tier) : null,
+        tier_label: rule.tier !== undefined ? policy.tiers[String(rule.tier)].label || null : null,
+        rationale:
+          `Rule "${rule.id || 'unnamed'}" bounds cumulative exposure, and no ledger was supplied. ` +
+          'Send ledger.committed_* and ledger.intended_* for the window, or the cap cannot be enforced.',
+        policy_version: policy.version || null,
+        default_applied: false,
+        ledger_required: true,
+      };
+    }
+    if (!hit) continue;
     const tier = rule.tier !== undefined ? String(rule.tier) : null;
     const decision = tier !== null ? policy.tiers[tier].decision : rule.decision;
     return {
@@ -2099,7 +2154,10 @@ async function handleCheck(request, env, c, url) {
       {},
       c.free
     );
-  const verdict = check(policy, parsed.request);
+  // Optional ledger view: cumulative exposure the request alone cannot show. Same contract as
+  // the MIT engine — committed_* plus intended_*, and a policy that asks for it without
+  // getting it fails closed rather than falling through.
+  const verdict = check(policy, parsed.request, parsed.ledger);
   if (verdict.error) return json(422, verdict, {}, c.free);
   return { verdict }; // caller wraps (payment headers may be added)
 }
@@ -3407,7 +3465,12 @@ ${walletPayControls(payTo, payUri)}
           endpoint: `${url.origin}/v1/check`,
           method: 'POST',
           paid: !c.free,
-          usage: 'POST { "policy_id": "default-action-tiers" | "policy": {...}, "request": { "action": "...", "params": {...} } }',
+          usage: 'POST { "policy_id": "default-action-tiers" | "policy": {...}, "request": { "action": "...", "params": {...} }, "ledger"?: { "committed_usd": 0, "intended_usd": 0 } }',
+          ledger: {
+            what: 'Optional cumulative exposure for the window. A per-action gate cannot see repetition: 49 payments of $40 each pass a $50 rule individually.',
+            fields: 'committed_<field> plus intended_<field>, summed. intended counts so a burst still in flight is not invisible to the cap bounding it.',
+            fails_closed: 'If a policy declares a cumulative condition and no ledger is sent, the verdict is deny with ledger_required: true. Explicit zeros are an answer; an omitted ledger is not.',
+          },
           accepts: c.free ? [] : [paymentRequirementsV1(c, url.href)],
           fallback: stripeFallbackOffer(),
           price_usd: c.free ? 0 : c.priceUsd,
