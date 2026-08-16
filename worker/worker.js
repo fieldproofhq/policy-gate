@@ -2747,6 +2747,14 @@ ${cardFallbackHtml()}
     // by agent-tools.cloud on 2026-08-16 for precisely this: "no /.well-known/x402 and no
     // 402 challenge from endpoint" — their prober GETs, and GET used to 404.
     if (request.method === 'GET' && (url.pathname === '/.well-known/pay' || url.pathname === '/.well-known/pay.json')) {
+      if (url.pathname !== '/.well-known/pay.json' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(
         200,
         {
