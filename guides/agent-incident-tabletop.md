@@ -146,9 +146,24 @@ Fifteen minutes, and write down the answers:
    reconstructable log, a named owner, an approved comms line?
 4. If this drill had been the real thing, what would you have said publicly that turns out
    not to have been true?
+5. **For each control you named tonight, what observable would differ if it had silently
+   stopped working a month ago?** If the answer is "nothing, we would just be worse off," that
+   control has no heartbeat and its status is a belief rather than a fact.
 
-That last one is not rhetorical. Most agent-incident damage after hour one is caused by a
+Question 4 is not rhetorical. Most agent-incident damage after hour one is caused by a
 confident early statement that later needs retracting.
+
+Question 5 catches the control class that survives every other check: **the ones whose failure
+mode is silence.** A control that throws errors gets a dashboard. A control that quietly stops
+producing an effect gets trusted, because nothing about it looks wrong — it is deployed, it is
+configured, it does not error. It simply is not doing anything, and no test you have asks
+whether it is.
+
+The counter-move is cheap and nobody runs it: go and observe the *effect* from outside the
+system, rather than confirming the mechanism ran. "We submitted it" is not evidence that it is
+listed. "The rule is deployed" is not evidence that anything was ever denied by it. Count the
+denials. If the number is zero and has always been zero, you do not have a gate, you have a
+decoration — and you will find that out during an incident, in front of an audience.
 
 ---
 
