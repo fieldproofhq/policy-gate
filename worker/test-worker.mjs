@@ -457,6 +457,10 @@ res = await call(paidEnv, 'GET', '/v1/pay/pack');
 assert.strictEqual(res.status, 200);
 const packHtml = await res.text();
 assert.match(packHtml, /mailto:3labsio@gmail\.com\?subject=Fieldproof%20one-flow%20pilot/);
+res = await call(paidEnv, 'GET', '/v1/pay');
+assert.strictEqual(res.status, 200);
+const payIndexHtml = await res.text();
+assert.match(payIndexHtml, /mailto:3labsio@gmail\.com\?subject=Fieldproof%20one-flow%20pilot/);
 async function mcp(env, method, params) {
   const res = await call(env, 'POST', '/mcp', { jsonrpc: '2.0', id: 1, method, params });
   if (res.status === 202) return { accepted: true };
