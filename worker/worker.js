@@ -777,9 +777,12 @@ function checkouts(c, origin, btc = null) {
       pay_uri: btc?.satsFor42
         ? `bitcoin:${BTC_ADDRESS}?amount=${(btc.satsFor42 / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`
         : null,
+      qr_url: btc?.satsFor42
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`bitcoin:${BTC_ADDRESS}?amount=${(btc.satsFor42 / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`)}`
+        : null,
       meets_first_42: Boolean(btc?.satsFor42),
       note: btc?.satsFor42
-        ? `send ${btc.satsFor42} sats (~$${GOAL_USD} at quoted spot); BIP21 pay_uri plus HTML checkout`
+        ? `send ${btc.satsFor42} sats (~$${GOAL_USD} at quoted spot); BIP21 pay_uri plus scannable QR`
         : 'public P2WPKH receive; ≥$42 of BTC at spot meets the bar; observed on mempool.space',
     },
   ];
@@ -1130,10 +1133,12 @@ export default {
       const sats = btc?.satsFor42 || null;
       const btcAmount = sats ? (sats / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '') : null;
       const payUri = sats ? `bitcoin:${BTC_ADDRESS}?amount=${btcAmount}` : `bitcoin:${BTC_ADDRESS}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
 <h1>Pay $42 in Bitcoin</h1>
 <p>Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public P2WPKH below. Mempool.space is the observer. Self-sends do not count.</p>
 <p><a href="${payUri}">Open in wallet (BIP21)</a></p>
+<p><img src="${qrUrl}" width="240" height="240" alt="QR code for Bitcoin BIP21 invoice"></p>
 <p>Pay to:</p>
 <pre style="white-space:pre-wrap;word-break:break-all">${BTC_ADDRESS}</pre>
 <p>Explorer: <a href="https://mempool.space/address/${BTC_ADDRESS}">mempool.space</a> · after sending, check <a href="/v1/received">GET /v1/received</a>.</p>

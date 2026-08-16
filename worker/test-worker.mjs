@@ -191,6 +191,8 @@ assert.match(res.headers.get('content-type'), /text\/html/);
 const btcPage = await res.text();
 assert.match(btcPage, /bitcoin:bc1q/);
 assert.match(btcPage, /bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t/);
+assert.match(btcPage, /create-qr-code/);
+assert.match(btcPage, /bitcoin%3Abc1q/);
 
 const selfTest = assessReceived(0.005, '2026-08-16T06:30:00.000Z');
 assert.equal(selfTest.externalUsd, 0);
