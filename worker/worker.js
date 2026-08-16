@@ -2988,11 +2988,10 @@ ${cardFallbackHtml()}
       }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${payUri}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 in Bitcoin</h1>
-<p>Opening wallet. Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below. Scan the QR if your wallet does not open.</p>
+<p>This page stays here so you can pick a rail. Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below. Scan the QR if your wallet does not open from the button.</p>
 <p><a href="${payUri}" id="fp-btc-open" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open in wallet (BIP21)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for Bitcoin BIP21 invoice"></p>
 <p>Pay to:</p>
@@ -3003,6 +3002,7 @@ ${cardFallbackHtml()}
 </p>
 <p>Explorer: <a href="https://mempool.space/address/${BTC_ADDRESS}">mempool.space</a>.</p>
 ${cardFallbackHtml()}
+<p>Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 <script>
 document.querySelectorAll("[data-copy]").forEach(function(btn){
   btn.addEventListener("click", function(){
@@ -3012,13 +3012,6 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
     }
   });
 });
-(function(){
-  var PAY_URI = ${JSON.stringify(payUri)};
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(PAY_URI).catch(function(){});
-  }
-  if (PAY_URI) location.replace(PAY_URI);
-})();
 </script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
