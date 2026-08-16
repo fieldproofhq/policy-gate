@@ -754,6 +754,23 @@ assert.equal(sponsorQuote.accepts[0].maxAmountRequired, '42000000');
 assert.notEqual(sponsorQuote.accepts[0].maxAmountRequired, '5000');
 assert.equal(sponsorQuote.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
 assert.equal(sponsorQuote.fallback.amountUsd, 42);
+assert.match(sponsorQuote.invoice, /\/v1\/invoice$/);
+assert.match(sponsorQuote.card_uri, /\/v1\/pay\/card\.uri$/);
+assert.match(sponsorQuote.usdc_uri, /\/v1\/pay\/usdc\.uri$/);
+assert.match(sponsorQuote.btc_uri, /\/v1\/pay\/btc\.uri$/);
+assert.equal(sponsorQuote.card, sponsorQuote.fallback.url);
+assert.ok(sponsorQuote.methods.some((rail) => rail.scheme === 'stripe' && rail.url === sponsorQuote.card));
+assert.ok(sponsorQuote.methods.some((rail) => rail.scheme === 'eip681' && /uint256=42000000/.test(rail.uri)));
+assert.ok(sponsorQuote.methods.some((rail) => rail.scheme === 'bip21' && /^bitcoin:bc1q/.test(rail.uri)));
+assert.ok(sponsorQuote.methods.some((rail) => rail.scheme === 'zelle' && rail.payTo === '3labsio@gmail.com'));
+res = await call(paidEnv, 'GET', '/mcp');
+const mcpHome = await res.json();
+assert.match(mcpHome.invoice, /\/v1\/invoice$/);
+assert.match(mcpHome.card_uri, /\/v1\/pay\/card\.uri$/);
+res = await call(paidEnv, 'GET', '/.well-known/mcp.json');
+const mcpManifest = await res.json();
+assert.match(mcpManifest.invoice, /\/v1\/invoice$/);
+assert.match(mcpManifest.card_uri, /\/v1\/pay\/card\.uri$/);
 
 /* free mode is the one place it may answer */
 m = await mcp(freeEnv, 'tools/call', { name: 'policy_check', arguments: { request: { action: 'gmail.read' } } });

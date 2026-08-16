@@ -463,7 +463,7 @@ const MCP_TOOLS = [
   {
     name: 'first_42_sponsor',
     description:
-      'Pay Fieldproof $42: 42 USDC on Base via x402, or the Stripe card Payment Link in the quote fallback. Returns the unpaid POST /v1/sponsor quote (42000000 atomic) plus a card URL.',
+      'Pay Fieldproof $42. Returns every live rail: Stripe card_uri, EIP-681 usdc_uri, BIP-21 btc_uri, x402 POST /v1/sponsor, Zelle, and GET /v1/invoice. One settlement meets the first-$42 bar.',
     inputSchema: { type: 'object', properties: {} },
   },
 ];
@@ -918,6 +918,10 @@ function mcpDiscovery(origin) {
     tools: ['policy_example', 'policy_rules', 'policy_check', 'first_42_sponsor'],
     payment: stripeFallbackOffer(),
     sponsor: `${origin}/v1/sponsor`,
+    invoice: `${origin}/v1/invoice`,
+    card_uri: `${origin}/v1/pay/card.uri`,
+    usdc_uri: `${origin}/v1/pay/usdc.uri`,
+    btc_uri: `${origin}/v1/pay/btc.uri`,
   };
 }
 
@@ -1396,6 +1400,10 @@ export default {
             currency: 'USDC',
             network: 'base',
             sponsor: `${url.origin}/v1/sponsor`,
+            invoice: `${url.origin}/v1/invoice`,
+            card_uri: `${url.origin}/v1/pay/card.uri`,
+            usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
+            btc_uri: `${url.origin}/v1/pay/btc.uri`,
             store: 'https://store.3labs.io',
             fallback: stripeFallbackOffer(),
             card: STRIPE_PAYMENT_LINK,
@@ -1419,7 +1427,7 @@ export default {
             capabilities: { tools: {} },
             serverInfo: { name: 'fieldproof-policy-gate', version: '0.2' },
             instructions:
-              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check quotes $0.005/check; first_42_sponsor quotes 42 USDC or the Stripe card fallback.url. One $42 payment meets the first-$42 bar.',
+              'Deterministic allow / require_approval / deny verdicts for proposed agent actions. policy_example and policy_rules are free; policy_check quotes $0.005/check; first_42_sponsor returns the live $42 invoice (card_uri, usdc_uri, btc_uri, x402, Zelle). One $42 payment meets the first-$42 bar.',
           });
         case 'notifications/initialized':
           return new Response(null, { status: 202, headers: corsHeaders() });
@@ -1458,15 +1466,25 @@ export default {
           }
           if (name === 'first_42_sponsor') {
             const quote = sponsorCfg(c);
+            const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+            let btc = null;
+            try { btc = await observeBtc(); } catch { btc = null; }
+            const invoice = fieldproofInvoice(url.origin, payTo, btc);
             return text({
               payment_required: !c.free,
               price_usd: 42,
               amount_atomic: quote.amount,
               endpoint: `${url.origin}/v1/sponsor`,
-              pay_to: c.payTo,
+              pay_to: payTo,
               accepts: c.free ? [] : [paymentRequirementsV1(quote, `${url.origin}/v1/sponsor`)],
               fallback: stripeFallbackOffer(),
-              how: 'POST /v1/sponsor with an X-PAYMENT header (x402) for 42 USDC on Base, or open fallback.url to pay $42 with card. One settlement meets the first-$42 bar.',
+              invoice: `${url.origin}/v1/invoice`,
+              card_uri: `${url.origin}/v1/pay/card.uri`,
+              usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
+              btc_uri: `${url.origin}/v1/pay/btc.uri`,
+              card: STRIPE_PAYMENT_LINK,
+              methods: invoice.methods,
+              how: 'Open card_uri or fallback.url for $42 card (also Cash App, Link, US bank, Klarna, Afterpay, Affirm). Fetch usdc_uri for 42 USDC EIP-681. Fetch btc_uri for BIP-21. Or POST /v1/sponsor with X-PAYMENT for 42 USDC on Base. One settlement meets the first-$42 bar.',
               observer: `${url.origin}/v1/received`,
             });
           }
@@ -1612,6 +1630,7 @@ export default {
         `- Worker short URL: ${url.origin}/pay`,
         `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
         `- Multi-rail invoice (HTTP 200): ${url.origin}/v1/invoice`,
+        `- MCP pay tool (first_42_sponsor): ${url.origin}/mcp`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
