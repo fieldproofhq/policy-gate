@@ -1642,9 +1642,11 @@ assert.match(canonsPage, /Pay \$42 for the Ethics Check kit/);
 assert.match(canonsPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.match(canonsPage, /buy\.stripe\.com\/aFa9AUce6afPdHb0aF1sQ05/);
 assert.match(canonsPage, /Fieldproof-Ethics-Check-Launch-Kit\.zip/);
-assert.match(canonsPage, /http-equiv="refresh"/);
-assert.match(canonsPage, /location\.replace/);
+assert.doesNotMatch(canonsPage, /http-equiv="refresh"/);
+assert.doesNotMatch(canonsPage, /location\.replace/);
 assert.match(canonsPage, /<ul>/);
+assert.match(canonsPage, /\/v1\/pay\/scan/);
+assert.match(canonsPage, /agentic-ai-governance-pack\?wanted=true/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 res = await call(paidEnv, 'GET', '/v1/ethics-check');
@@ -1658,8 +1660,9 @@ assert.match(ethicsPage, /Pay \$42 for the Ethics Check kit/);
 assert.match(ethicsPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 assert.match(ethicsPage, /buy\.stripe\.com\/aFa9AUce6afPdHb0aF1sQ05/);
 assert.match(ethicsPage, /Fieldproof-Ethics-Check-Launch-Kit\.zip/);
-assert.match(ethicsPage, /http-equiv="refresh"/);
-assert.match(ethicsPage, /location\.replace/);
+assert.doesNotMatch(ethicsPage, /http-equiv="refresh"/);
+assert.doesNotMatch(ethicsPage, /location\.replace\("https:\/\/buy\.stripe\.com\/aFa9AUce6afPdHb0aF1sQ05"\)/);
+assert.match(ethicsPage, /\/v1\/pay\/scan/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 res = await call(paidEnv, 'POST', '/v1/ethics-check', { action: 'x.read' });

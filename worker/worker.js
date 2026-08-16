@@ -3547,15 +3547,13 @@ ${walletPayControls(payTo, payUri)}
       if (wantsHtml(request)) {
         const titles = CANONS.map((c) => `<li><strong>${c.id}</strong> — ${c.title}</li>`).join('');
         const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — Fieldproof canons</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_ETHICS_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay $42</h1>
-<p>Opening the Ethics Check kit checkout. The seven canons are free to read. One $42 card payment. After payment, download the Word ZIP.</p>
+<h1>Seven canons</h1>
+<p>This page stays here so you can read the canons, then pick a rail. The canons are free. The Ethics Check Word kit is $42 and downloads after card checkout.</p>
 <p><a href="${STRIPE_ETHICS_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 for the Ethics Check kit</a> <a href="${STRIPE_PAYMENT_LINK}">Pay $42 with card</a></p>
 <ul>${titles}</ul>
-<p>After payment: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. JSON: <a href="/v1/canons">GET /v1/canons</a> without HTML Accept.</p>
-<script>location.replace(${JSON.stringify(STRIPE_ETHICS_LINK)});</script>
+<p>After payment: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. JSON: <a href="/v1/canons">GET /v1/canons</a> without HTML Accept. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
         return new Response(html, {
           status: 200,
@@ -3591,15 +3589,13 @@ ${walletPayControls(payTo, payUri)}
         const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
         const payUri = usdcEip681(payTo);
         const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 — ethics check</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_ETHICS_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
-<h1>Pay $42</h1>
-<p>Opening the Ethics Check kit checkout. One $42 card payment. POST /v1/ethics-check is a separate $0.01 x402 screen.</p>
+<h1>Ethics Check</h1>
+<p>This page stays here so you can pick a rail. The Ethics Check Word kit is $42. POST /v1/ethics-check is a separate $0.01 x402 screen.</p>
 <p><a href="${STRIPE_ETHICS_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 for the Ethics Check kit</a> <a href="${STRIPE_PAYMENT_LINK}">Pay $42 with card</a></p>
 ${walletPayControls(payTo, payUri)}
-<p>After payment: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. Free canons: <a href="/v1/canons">GET /v1/canons</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_ETHICS_LINK)});</script>
+<p>After payment: <a href="${ETHICS_ZIP}">Fieldproof-Ethics-Check-Launch-Kit.zip</a>. Free canons: <a href="/v1/canons">GET /v1/canons</a>. Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
         return new Response(html, {
           status: 200,
