@@ -574,8 +574,18 @@ const MCP_TOOLS = [
             params: { type: 'object' },
           },
         },
-        policy_id: { type: 'string', description: 'Built-in policy id; see policy_rules' },
+        policy_id: { type: 'string', description: 'Built-in policy id; see policy_rules. "default-action-tiers-capped" adds a cumulative spend bound.' },
         policy: { type: 'object', description: 'Your own policy document, evaluated instead of ours' },
+        ledger: {
+          type: 'object',
+          description:
+            'Optional cumulative exposure for the window. A per-action gate cannot see repetition: 49 payments of $40 each pass a $50 rule individually. Omit it and any policy declaring a cumulative bound returns deny with ledger_required — a cap you can skip by omitting state is decorative. Explicit zeros are an answer; an absent object is not.',
+          properties: {
+            committed_usd: { type: 'number', description: 'Spend already known to have happened in the window' },
+            intended_usd: { type: 'number', description: 'Dispatched and not yet confirmed. Counts toward the bound, so a burst in flight is not invisible to it.' },
+            unknown_usd: { type: 'number', description: 'Dispatched and never resolved. Any value above zero denies with unresolved_intent, regardless of headroom: the system has lost track of this quantity. It closes by observing the target, never by a clock.' },
+          },
+        },
       },
     },
   },
@@ -2298,7 +2308,9 @@ export default {
             const policy = args.policy || BUILTINS[args.policy_id || 'default-action-tiers'];
             const req = args.request;
             if (!req?.action) return text({ error: 'request.action is required' });
-            if (c.free) return text(check(policy, req));
+            // Forward the ledger. The schema advertises it, so dropping it here would be a
+            // parameter that exists only in documentation.
+            if (c.free) return text(check(policy, req, args.ledger));
             // Paid: quote the price rather than answer. The verdict itself stays behind x402.
             return text({
               payment_required: true,
