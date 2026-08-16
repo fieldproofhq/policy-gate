@@ -1415,13 +1415,14 @@ function payIndexHtml(origin, btc = null) {
   const btcLabel = sats
     ? `${sats} sats (~$${GOAL_USD}${price ? ` at $${price}/BTC` : ''})`
     : `~$42 of BTC`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title><link rel="payment" href="${STRIPE_PAYMENT_LINK}"></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Fieldproof $42</title><link rel="payment" href="${STRIPE_PAYMENT_LINK}"></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay Fieldproof $42</h1>
-<p>Fieldproof is a fractional C-suite for agentic teams. Buy the written contract this business runs under, or load a role an agent can hold.</p>
-<p>Card first:</p>
+<p>Fieldproof is a fractional C-suite for agentic teams. One payment. No Fieldproof account.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>Card, Cash App, Link, US bank debit, Klarna, Afterpay, or Affirm.</p>
+<p>Other ways:</p>
 <ul>
-<li><a href="${STRIPE_PAYMENT_LINK}">$42 with card</a> — live Stripe Payment Link</li>
-<li><a href="${origin}/v1/pay/card">Card checkout page</a> — same $42 Stripe link with copy</li>
+<li><a href="${origin}/v1/pay/card">Card checkout page</a> — opens the same $42 Stripe link</li>
 <li><a href="https://store.3labs.io">Browse the store</a> — Governance Pack, CMO kit, tip jar</li>
 <li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — seven templates, Gumroad card</li>
 <li><a href="${origin}/v1/pay/cmo">$39 Fractional CMO kit</a> — humans and agents</li>
@@ -2191,15 +2192,19 @@ ${cardFallbackHtml()}
         );
       }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 with card — Fieldproof</title>
+<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 with card</h1>
-<p>One <strong>$42</strong> payment on Stripe. Hosted checkout — no Fieldproof account required. Pays with <strong>card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, <strong>US bank debit</strong>, <strong>Klarna</strong>, <strong>Afterpay</strong>, or <strong>Affirm</strong>.</p>
+<p>Opening checkout. One <strong>$42</strong> payment — no Fieldproof account. <strong>Card</strong>, <strong>Cash App</strong>, <strong>Link</strong>, <strong>US bank debit</strong>, <strong>Klarna</strong>, <strong>Afterpay</strong>, or <strong>Affirm</strong>.</p>
 <p><a href="${STRIPE_PAYMENT_LINK}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
-<p><a href="${STRIPE_PAYMENT_LINK}"><img src="${qrUrl}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
-<p>Direct link: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
-<p>Also: <a href="https://store.3labs.io">store.3labs.io</a> (Gumroad card) · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
+<p><a href="${STRIPE_PAYMENT_LINK}"><img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}" width="240" height="240" alt="QR code for the $42 Stripe checkout"></a></p>
+<p>If nothing happens, use the button. Direct: <a href="${STRIPE_PAYMENT_LINK}">${STRIPE_PAYMENT_LINK}</a></p>
+<p>Also: <a href="https://store.3labs.io">store.3labs.io</a> · <a href="${url.origin}/v1/pay/usdc">42 USDC</a> · <a href="${url.origin}/v1/pay/btc">Bitcoin</a>.</p>
+<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
-      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/pack.uri' || url.pathname === '/v1/pay/pack.txt')) {
