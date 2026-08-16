@@ -530,6 +530,39 @@ function wantsSponsorPage(request) {
   return wantsHtml(request);
 }
 
+const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+function usdcEip681(payTo) {
+  return `ethereum:${USDC_BASE}@8453/transfer?address=${payTo}&uint256=42000000`;
+}
+
+function formatBtcAmount(sats) {
+  return (sats / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function btcBip21(sats) {
+  return sats ? `bitcoin:${BTC_ADDRESS}?amount=${formatBtcAmount(sats)}` : `bitcoin:${BTC_ADDRESS}`;
+}
+
+function wantsUriList(request) {
+  return /text\/uri-list/i.test(request.headers.get('accept') || '');
+}
+
+function wantsJson(request) {
+  return /application\/json/i.test(request.headers.get('accept') || '');
+}
+
+function uriListResponse(uri) {
+  return new Response(`${uri}\n`, {
+    status: 200,
+    headers: {
+      'content-type': 'text/uri-list; charset=utf-8',
+      Link: paymentLinkHeader(),
+      ...corsHeaders(),
+    },
+  });
+}
+
 function copyPayControls(address, payUri, addressLabel = 'Copy address', invoiceLabel = 'Copy invoice') {
   const esc = (value) => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return `<p>
@@ -739,6 +772,20 @@ function openApiSpec(origin) {
           responses: {
             402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
           },
+        },
+      },
+      '/v1/pay/usdc.uri': {
+        get: {
+          operationId: 'payUsdcUri',
+          summary: 'text/uri-list EIP-681 invoice for 42 USDC on Base. Open in any wallet that understands ethereum: URIs.',
+          responses: { 200: { description: 'text/uri-list; one ethereum: transfer URI' } },
+        },
+      },
+      '/v1/pay/btc.uri': {
+        get: {
+          operationId: 'payBtcUri',
+          summary: 'text/uri-list BIP-21 invoice for ~$42 BTC at the live spot quote.',
+          responses: { 200: { description: 'text/uri-list; one bitcoin: URI with amount' } },
         },
       },
       '/v1/sponsor': {
@@ -1424,6 +1471,8 @@ export default {
         `${url.origin}/v1/pay/card`,
         `${url.origin}/v1/sponsor`,
         `${url.origin}/v1/offer`,
+        `${url.origin}/v1/pay/usdc.uri`,
+        `${url.origin}/v1/pay/btc.uri`,
         `${url.origin}/mcp`,
         `${url.origin}/.well-known/x402`,
         `${url.origin}/.well-known/pay`,
@@ -1485,8 +1534,10 @@ export default {
         '',
         '## Crypto / Zelle',
         `- 42 USDC on Base: ${url.origin}/v1/pay/usdc`,
+        `- 42 USDC EIP-681 (text/uri-list): ${url.origin}/v1/pay/usdc.uri`,
         `- POST /v1/sponsor x402: ${url.origin}/v1/sponsor`,
         `- Bitcoin: ${url.origin}/v1/pay/btc`,
+        `- Bitcoin BIP-21 (text/uri-list): ${url.origin}/v1/pay/btc.uri`,
         `- Zelle $42 to 3labsio@gmail.com: ${url.origin}/v1/pay/zelle`,
         '',
         'Observer: GET /v1/received. A 402 or HTTP 200 is not income.',
@@ -1585,12 +1636,36 @@ ${cardFallbackHtml()}
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/btc.uri' || url.pathname === '/v1/pay/btc.txt')) {
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      return uriListResponse(btcBip21(btc?.satsFor42 || null));
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/btc') {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
       const sats = btc?.satsFor42 || null;
-      const btcAmount = sats ? (sats / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '') : null;
-      const payUri = sats ? `bitcoin:${BTC_ADDRESS}?amount=${btcAmount}` : `bitcoin:${BTC_ADDRESS}`;
+      const payUri = btcBip21(sats);
+      if (wantsUriList(request)) return uriListResponse(payUri);
+      if (wantsJson(request)) {
+        return json(
+          200,
+          {
+            scheme: 'bip21',
+            asset: 'BTC',
+            amountUsd: GOAL_USD,
+            amountSats: sats,
+            priceUsd: btc?.priceUsd ?? null,
+            payTo: BTC_ADDRESS,
+            uri: payUri,
+            qr: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`,
+            card: STRIPE_PAYMENT_LINK,
+          },
+          { Link: paymentLinkHeader() },
+          true
+        );
+      }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 in Bitcoin</h1>
@@ -1636,9 +1711,33 @@ ${cardFallbackHtml()}
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/usdc.uri' || url.pathname === '/v1/pay/usdc.txt')) {
+      const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
+      return uriListResponse(usdcEip681(payTo));
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/usdc') {
       const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
-      const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
+      const payUri = usdcEip681(payTo);
+      if (wantsUriList(request)) return uriListResponse(payUri);
+      if (wantsJson(request)) {
+        return json(
+          200,
+          {
+            scheme: 'eip681',
+            network: 'eip155:8453',
+            asset: 'USDC',
+            amountUsd: GOAL_USD,
+            amountAtomic: '42000000',
+            payTo,
+            uri: payUri,
+            qr: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`,
+            card: STRIPE_PAYMENT_LINK,
+          },
+          { Link: paymentLinkHeader() },
+          true
+        );
+      }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
@@ -1759,7 +1858,9 @@ ${cardFallbackHtml()}
           methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
           also: {
             usdc: `${url.origin}/v1/pay/usdc`,
+            usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
             btc: `${url.origin}/v1/pay/btc`,
+            btc_uri: `${url.origin}/v1/pay/btc.uri`,
             zelle: `${url.origin}/v1/pay/zelle`,
             store: 'https://store.3labs.io',
           },
