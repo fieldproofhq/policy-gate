@@ -832,6 +832,13 @@ function openApiSpec(origin) {
           responses: { 200: { description: 'JSON invoice. Accept text/uri-list for Stripe + wallet URIs.' } },
         },
       },
+      '/skills/pay/SKILL.md': {
+        get: {
+          operationId: 'paySkill',
+          summary: 'Agent skill: how to pay Fieldproof $42 on every live rail',
+          responses: { 200: { description: 'text/markdown skill with live checkout URLs' } },
+        },
+      },
       '/v1/pay/card.uri': {
         get: {
           operationId: 'payCardUri',
@@ -908,6 +915,57 @@ function aiPluginManifest(origin) {
 }
 
 /** MCP clients fetch /.well-known/mcp.json to find a remote Streamable HTTP server. */
+function skillPayMd(origin) {
+  return [
+    '---',
+    'name: fieldproof-pay-42',
+    'description: Pay Fieldproof $42 with card, 42 USDC on Base, Bitcoin, x402, or Zelle. One stranger payment meets the first-income bar.',
+    '---',
+    '',
+    '# Pay Fieldproof $42',
+    '',
+    'One payment of $42 (or 42 USDC / equivalent BTC) is the live checkout.',
+    '',
+    '## Fastest path',
+    '',
+    `1. Open the card URI: ${origin}/v1/pay/card.uri`,
+    `2. Or open Stripe directly: ${STRIPE_PAYMENT_LINK}`,
+    '3. Pay $42 with card, Cash App, Link, US bank debit, Klarna, Afterpay, or Affirm.',
+    '',
+    '## Machine invoice',
+    '',
+    `- GET ${origin}/v1/invoice  (HTTP 200 JSON, every rail)`,
+    `- GET ${origin}/v1/pay/card.uri  (text/uri-list Stripe)`,
+    `- GET ${origin}/v1/pay/usdc.uri  (text/uri-list EIP-681, 42 USDC on Base)`,
+    `- GET ${origin}/v1/pay/btc.uri  (text/uri-list BIP-21)`,
+    `- POST ${origin}/v1/sponsor  (x402 42 USDC; unpaid returns 402)`,
+    `- POST ${origin}/mcp  tools/call first_42_sponsor`,
+    '',
+    '## Humans',
+    '',
+    `- https://fieldproofhq.github.io/offer/  (auto-opens Stripe)`,
+    '- https://store.3labs.io',
+    `- ${origin}/v1/pay/zelle  ($42 to 3labsio@gmail.com memo Fieldproof)`,
+    '',
+    'A 402 or HTTP 200 is not income. Observer: GET /v1/received.',
+    '',
+  ].join('\n');
+}
+
+function skillsIndex(origin) {
+  return {
+    skills: [
+      {
+        id: 'fieldproof-pay-42',
+        name: 'Pay Fieldproof $42',
+        url: `${origin}/skills/pay/SKILL.md`,
+        amountUsd: 42,
+        card: STRIPE_PAYMENT_LINK,
+      },
+    ],
+  };
+}
+
 function mcpDiscovery(origin) {
   return {
     version: '1.0',
@@ -1576,6 +1634,8 @@ export default {
         `${url.origin}/v1/pay/usdc.uri`,
         `${url.origin}/v1/pay/btc.uri`,
         `${url.origin}/mcp`,
+        `${url.origin}/skills/pay/SKILL.md`,
+        `${url.origin}/.well-known/skills.json`,
         `${url.origin}/.well-known/x402`,
         `${url.origin}/.well-known/pay`,
         `${url.origin}/.well-known/agent-card.json`,
@@ -1631,6 +1691,7 @@ export default {
         `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
         `- Multi-rail invoice (HTTP 200): ${url.origin}/v1/invoice`,
         `- MCP pay tool (first_42_sponsor): ${url.origin}/mcp`,
+        `- Agent skill: ${url.origin}/skills/pay/SKILL.md`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -1950,6 +2011,27 @@ ${cardFallbackHtml()}
       return json(200, mcpDiscovery(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
+    if (
+      request.method === 'GET' &&
+      (url.pathname === '/skills/pay/SKILL.md' ||
+        url.pathname === '/skills/pay' ||
+        url.pathname === '/skills/pay/' ||
+        url.pathname === '/.well-known/skills/pay/SKILL.md')
+    ) {
+      return new Response(skillPayMd(url.origin), {
+        status: 200,
+        headers: {
+          'content-type': 'text/markdown; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/.well-known/skills.json' || url.pathname === '/skills.json')) {
+      return json(200, skillsIndex(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
     if (request.method === 'GET' && url.pathname === '/.well-known/mcp-registry-auth') {
       return new Response('v=MCPv1; k=ed25519; p=EGbytDYPTQb3C/N/jNxx/kq5l8U5kXJTeW5Kw4yXsAM=', {
         status: 200,
@@ -1984,6 +2066,7 @@ ${cardFallbackHtml()}
           methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
           also: {
             invoice: `${url.origin}/v1/invoice`,
+            skill: `${url.origin}/skills/pay/SKILL.md`,
             card_uri: `${url.origin}/v1/pay/card.uri`,
             usdc: `${url.origin}/v1/pay/usdc`,
             usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
