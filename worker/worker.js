@@ -1123,11 +1123,14 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/cmo') {
       const checkout = 'https://store.3labs.io/l/fractional-cmo-launch-kit?wanted=true';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $39 CMO Launch Kit — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+      const cover = 'https://public-files.gumroad.com/q8ndyh3mpngn25hk15p4pwuby0my';
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $39 CMO Launch Kit — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $39 Fractional CMO Launch Kit</h1>
-<p>Land a fractional CMO practice in 30 days — or load the same kit so an agent can hold the seat. <strong>$39</strong>.</p>
-<p><a href="${checkout}">Open $39 checkout</a></p>
-<p>Agent operating contract: <a href="https://fieldproofhq.github.io/csuite/cmo/">fieldproofhq.github.io/csuite/cmo</a>.</p>
+<p>Land a fractional CMO practice in 30 days — or load the same kit so an agent can hold the seat.</p>
+<p><a href="${checkout}"><img src="${cover}" alt="Fractional CMO Launch Kit" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p style="font-size:1.25rem;font-weight:700">$39</p>
+<p><a href="${checkout}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $39 CMO kit</a></p>
+<p>Agent contract: <a href="https://fieldproofhq.github.io/csuite/cmo/">fieldproofhq.github.io/csuite/cmo</a>. Store: <a href="https://store.3labs.io">store.3labs.io</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
