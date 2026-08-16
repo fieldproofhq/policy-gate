@@ -127,6 +127,20 @@ We spent a day discovering that a working, revenue-capable x402 service is invis
 - the undocumented Ed25519 domain-auth flow for the official MCP registry
 - dynamic x402 pricing, and the measurement mistake that makes a working funnel look dead
 
+## Free: one of the seven pack documents, in full
+
+We were asking people to pay $42 for seven documents they could not see. Twenty-one people
+looked at that page and none of them bought, which is the correct response to being asked to
+trust a description.
+
+So here is one of the seven, complete and unwatermarked:
+[**MCP & Tool Integration Security Checklist**](guides/mcp-tool-integration-security-checklist.md)
+— sixteen checks across provenance, permissions and data flow, injection resistance, and
+operations, with four `[Blocker]` items that stop a deployment, and a sign-off table.
+
+It is the one aimed squarely at anyone wiring an MCP server to an agent, including this one.
+Judge the other six by it.
+
 ## Free: run an agent incident drill
 
 Ninety minutes, one facilitator, no prep beyond printing it: [**Agent Incident Drill**](guides/agent-incident-tabletop.md) — a print-and-play tabletop exercise for the question most AI governance documents never rehearse, which is *your agent already did the thing, now what?*
