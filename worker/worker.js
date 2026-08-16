@@ -810,6 +810,10 @@ function paymentLinkHeader() {
   return `<${STRIPE_PAYMENT_LINK}>; rel="payment"; title="Pay $42 with card"`;
 }
 
+function stripeQrUrl() {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(STRIPE_PAYMENT_LINK)}`;
+}
+
 function npmFunding() {
   return [
     { type: 'individual', url: 'https://fieldproofhq.github.io/offer/' },
@@ -1054,6 +1058,13 @@ function openApiSpec(origin) {
           operationId: 'paySkill',
           summary: 'Agent skill: how to pay Fieldproof $42 on every live rail',
           responses: { 200: { description: 'text/markdown skill with live checkout URLs' } },
+        },
+      },
+      '/v1/pay/card.png': {
+        get: {
+          operationId: 'payCardQr',
+          summary: '302 to a scannable QR of the live $42 Stripe Payment Link',
+          responses: { 302: { description: 'Redirect to QR image of the Stripe checkout' } },
         },
       },
       '/v1/pay/card.uri': {
@@ -1388,6 +1399,16 @@ function checkouts(c, origin, btc = null) {
       pay_uri: STRIPE_PAYMENT_LINK,
       meets_first_42: true,
       note: 'text/uri-list of the live Stripe Payment Link; agents open the first URI',
+    },
+    {
+      id: 'card-qr',
+      url: `${origin}/v1/pay/card.png`,
+      asset: 'USD',
+      amount_usd: 42,
+      pay_uri: STRIPE_PAYMENT_LINK,
+      qr_url: stripeQrUrl(),
+      meets_first_42: true,
+      note: '302 to a scannable QR of the live $42 Stripe Payment Link',
     },
     {
       id: 'governance-pack',
@@ -1922,6 +1943,7 @@ export default {
         `${url.origin}/v1/pay`,
         `${url.origin}/v1/pay/card`,
         `${url.origin}/v1/pay/card.uri`,
+        `${url.origin}/v1/pay/card.png`,
         `${url.origin}/v1/sponsor`,
         `${url.origin}/v1/offer`,
         `${url.origin}/v1/quote`,
@@ -1991,6 +2013,7 @@ export default {
         '## Card / bank / wallets',
         `- Stripe Payment Link: ${STRIPE_PAYMENT_LINK}`,
         `- Card URI (text/uri-list): ${url.origin}/v1/pay/card.uri`,
+        `- Card QR (scannable): ${url.origin}/v1/pay/card.png`,
         '- Methods: card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm',
         `- Mission offer (auto-opens Stripe): https://fieldproofhq.github.io/offer/`,
         `- Worker short URL: ${url.origin}/pay`,
@@ -2057,6 +2080,10 @@ ${cardFallbackHtml()}
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/card.uri' || url.pathname === '/v1/pay/card.txt')) {
       return uriListResponse(STRIPE_PAYMENT_LINK);
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/card.png' || url.pathname === '/v1/pay/card.qr')) {
+      return Response.redirect(stripeQrUrl(), 302);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/card') {
@@ -2514,6 +2541,7 @@ ${cardFallbackHtml()}
             skill: `${url.origin}/skills/pay/SKILL.md`,
             funding: `${url.origin}/package.json`,
             card_uri: `${url.origin}/v1/pay/card.uri`,
+            card_qr: `${url.origin}/v1/pay/card.png`,
             usdc: `${url.origin}/v1/pay/usdc`,
             usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
             btc: `${url.origin}/v1/pay/btc`,
