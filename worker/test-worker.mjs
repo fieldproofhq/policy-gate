@@ -1526,9 +1526,11 @@ assert.match(res.headers.get('content-type'), /text\/html/);
 const checkPage = await res.text();
 assert.match(checkPage, /Pay \$42 with card/);
 assert.match(checkPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
-assert.match(checkPage, /http-equiv="refresh"/);
-assert.match(checkPage, /location\.replace/);
+assert.doesNotMatch(checkPage, /http-equiv="refresh"/);
+assert.doesNotMatch(checkPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
 assert.match(checkPage, /POST \/v1\/check/);
+assert.match(checkPage, /\/v1\/pay\/scan/);
+assert.match(checkPage, /agentic-ai-governance-pack\?wanted=true/);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 /* 4d — MCP (Streamable HTTP). Discovery channel for agents that speak MCP rather than x402.
