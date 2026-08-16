@@ -10,5 +10,9 @@
   "engines": { "node": ">=18" },
   "license": "MIT",
   "repository": { "type": "git", "url": "https://github.com/fieldproofhq/policy-gate" },
-  "keywords": ["ai-agents", "policy", "governance", "x402", "agent-safety", "action-tiers"]
+  "keywords": ["ai-agents", "policy", "governance", "x402", "agent-safety", "action-tiers"],
+  "funding": [
+    { "type": "individual", "url": "https://fieldproofhq.github.io/offer/" },
+    { "type": "stripe", "url": "https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00" }
+  ]
 }

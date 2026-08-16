@@ -787,6 +787,13 @@ function paymentLinkHeader() {
   return `<${STRIPE_PAYMENT_LINK}>; rel="payment"; title="Pay $42 with card"`;
 }
 
+function npmFunding() {
+  return [
+    { type: 'individual', url: 'https://fieldproofhq.github.io/offer/' },
+    { type: 'stripe', url: STRIPE_PAYMENT_LINK },
+  ];
+}
+
 function openApiSpec(origin) {
   const fallback = stripeFallbackOffer();
   return {
@@ -801,6 +808,13 @@ function openApiSpec(origin) {
     servers: [{ url: origin }],
     externalDocs: { description: 'Pay $42 with card', url: STRIPE_PAYMENT_LINK },
     paths: {
+      '/package.json': {
+        get: {
+          operationId: 'npmFunding',
+          summary: 'npm-style funding document pointing at the live $42 checkout',
+          responses: { 200: { description: 'package.json with funding URLs' } },
+        },
+      },
       '/pay': {
         get: {
           operationId: 'payCardRedirect',
@@ -1594,10 +1608,27 @@ export default {
           operator: 'https://fieldproofhq.github.io',
           store: 'https://store.3labs.io',
           x: 'https://x.com/FieldProofAI',
+          funding: npmFunding(),
           checkouts: checkouts(c, url.origin),
         },
         { Link: paymentLinkHeader() },
         c.free
+      );
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/package.json' || url.pathname === '/.well-known/package.json')) {
+      return json(
+        200,
+        {
+          name: '@fieldproofhq/policy-gate',
+          version: '0.2.0',
+          description: 'Deterministic policy verdicts for agents. Pay $42 with card or 42 USDC on Base.',
+          funding: npmFunding(),
+          homepage: 'https://fieldproofhq.github.io/offer/',
+          repository: { type: 'git', url: 'https://github.com/fieldproofhq/policy-gate' },
+        },
+        { Link: paymentLinkHeader() },
+        true
       );
     }
 
@@ -1644,6 +1675,7 @@ export default {
         `${url.origin}/.well-known/mcp.json`,
         `${url.origin}/.well-known/llms.txt`,
         `${url.origin}/llms-full.txt`,
+        `${url.origin}/package.json`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
@@ -1692,6 +1724,7 @@ export default {
         `- Multi-rail invoice (HTTP 200): ${url.origin}/v1/invoice`,
         `- MCP pay tool (first_42_sponsor): ${url.origin}/mcp`,
         `- Agent skill: ${url.origin}/skills/pay/SKILL.md`,
+        `- npm funding (package.json): ${url.origin}/package.json`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2067,6 +2100,7 @@ ${cardFallbackHtml()}
           also: {
             invoice: `${url.origin}/v1/invoice`,
             skill: `${url.origin}/skills/pay/SKILL.md`,
+            funding: `${url.origin}/package.json`,
             card_uri: `${url.origin}/v1/pay/card.uri`,
             usdc: `${url.origin}/v1/pay/usdc`,
             usdc_uri: `${url.origin}/v1/pay/usdc.uri`,
