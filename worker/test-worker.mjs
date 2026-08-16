@@ -1111,6 +1111,15 @@ assert.ok(mcpDiscover.tools.includes('first_42_sponsor'));
 assert.equal(mcpDiscover.card, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
 assert.equal(mcpDiscover.fallback.url, mcpDiscover.card);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
+res = await call(paidEnv, 'GET', '/mcp', undefined, { accept: 'text/html' });
+assert.strictEqual(res.status, 200);
+assert.match(res.headers.get('content-type'), /text\/html/);
+const mcpPage = await res.text();
+assert.match(mcpPage, /Pay \$42 with card/);
+assert.match(mcpPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(mcpPage, /http-equiv="refresh"/);
+assert.match(mcpPage, /location\.replace/);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 async function mcp(env, method, params) {
   const res = await call(env, 'POST', '/mcp', { jsonrpc: '2.0', id: 1, method, params });
   if (res.status === 202) return { accepted: true };

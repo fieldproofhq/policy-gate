@@ -1864,6 +1864,14 @@ export default {
     // is a discovery channel and not a giveaway of the product.
     if (url.pathname === '/mcp') {
       if (request.method === 'GET') {
+        if (wantsHtml(request)) {
+          let btc = null;
+          try { btc = await observeBtc(); } catch { btc = null; }
+          return new Response(payIndexHtml(url.origin, btc), {
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+          });
+        }
         return json(
           200,
           {
