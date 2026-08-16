@@ -548,12 +548,81 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
 </script>`;
 }
 
+// One-click 42 USDC transfer from the stranger's injected wallet. No Fieldproof key
+// is used; the browser only builds ERC-20 transfer calldata and asks the wallet to
+// confirm. Mobile wallets without window.ethereum still use the EIP-681 link / QR.
+function walletPayControls(payTo) {
+  const to = String(payTo || '').toLowerCase();
+  if (!/^0x[a-f0-9]{40}$/.test(to)) return '';
+  return `<p><button type="button" id="fp-wallet-pay" style="background:#111;color:#fff;border:0;padding:.7rem 1.1rem;border-radius:999px;font-weight:600;cursor:pointer">Pay 42 USDC in this browser</button>
+<span id="fp-wallet-status" style="display:block;margin-top:.55rem;color:#444"></span></p>
+<script>
+(function(){
+  var btn = document.getElementById("fp-wallet-pay");
+  var status = document.getElementById("fp-wallet-status");
+  var USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+  var PAY_TO = "${to}";
+  var AMOUNT = "42000000";
+  var BASE = "0x2105";
+  function say(msg){ if (status) status.textContent = msg; }
+  function pad(hex, n){ hex = String(hex).replace(/^0x/i, "").toLowerCase(); while (hex.length < n) hex = "0" + hex; return hex; }
+  function transferData(dest, amount){ return "0xa9059cbb" + pad(dest, 64) + pad(BigInt(amount).toString(16), 64); }
+  async function ensureBase(eth){
+    var chain = await eth.request({ method: "eth_chainId" });
+    if (String(chain).toLowerCase() === BASE) return;
+    try {
+      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BASE }] });
+    } catch (err) {
+      if (err && (err.code === 4902 || String(err.code) === "4902")) {
+        await eth.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: BASE,
+            chainName: "Base",
+            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"]
+          }]
+        });
+      } else { throw err; }
+    }
+  }
+  if (!btn) return;
+  btn.addEventListener("click", async function(){
+    var eth = window.ethereum;
+    if (!eth) {
+      say("No browser wallet found. Use the QR or copy the invoice into a wallet that can send USDC on Base.");
+      return;
+    }
+    btn.disabled = true;
+    say("Requesting wallet…");
+    try {
+      var accounts = await eth.request({ method: "eth_requestAccounts" });
+      if (!accounts || !accounts[0]) throw new Error("wallet did not return an account");
+      await ensureBase(eth);
+      say("Confirm 42 USDC on Base in your wallet.");
+      var tx = await eth.request({
+        method: "eth_sendTransaction",
+        params: [{ from: accounts[0], to: USDC, data: transferData(PAY_TO, AMOUNT), value: "0x0" }]
+      });
+      say("Submitted. View on Base: https://basescan.org/tx/" + tx);
+    } catch (err) {
+      say((err && (err.message || err.reason)) ? (err.message || err.reason) : "wallet rejected or failed");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>`;
+}
+
 function sponsorHtml(origin, payTo) {
   const payUri = `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
 <p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Agents can settle the same amount via x402 <code>POST /v1/sponsor</code>.</p>
+${walletPayControls(payTo)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
@@ -691,8 +760,8 @@ function payIndexHtml(origin, btc = null) {
 </ul>
 <p>Or pay another way:</p>
 <ul>
-<li><a href="${origin}/v1/sponsor">42 USDC / x402</a> — browser QR or agent POST /v1/sponsor</li>
-<li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
+<li><a href="${origin}/v1/sponsor">42 USDC / x402</a> — in-browser wallet, QR, or agent POST /v1/sponsor</li>
+<li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — in-browser wallet, EIP-681, QR</li>
 <li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com</li>
 <li><a href="${origin}/v1/pay/btc">${btcLabel}</a> — BIP21 Bitcoin</li>
 <li><a href="${origin}/v1/pay/x402">x402 agent docs</a> — per-check quote</li>
@@ -775,7 +844,7 @@ function checkouts(c, origin, btc = null) {
       pay_uri: `ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`,
       qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=${payTo}&uint256=42000000`)}`,
       meets_first_42: true,
-      note: 'one-tap 42 USDC on Base; EIP-681 pay_uri plus scannable QR on the HTML checkout',
+      note: 'in-browser wallet transfer of 42 USDC on Base, plus EIP-681 pay_uri and QR',
     },
     {
       id: 'zelle',
@@ -1241,6 +1310,7 @@ ${copyPayControls('3labsio@gmail.com', '42.00', 'Copy email', 'Copy $42')}
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay 42 USDC — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay 42 USDC on Base</h1>
 <p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Other networks may lose the funds.</p>
+${walletPayControls(payTo)}
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for 42 USDC on Base"></p>
 <p>Pay to:</p>
