@@ -1084,9 +1084,9 @@ function openApiSpec(origin) {
       '/v1/quote': {
         get: {
           operationId: 'quote42',
-          summary: 'Alias of /v1/offer for directories that key on URL. HTML 302s to Stripe; otherwise HTTP 402 with 42 USDC plus card fallback.',
+          summary: 'Alias of /v1/offer for directories that key on URL. Browsers get a live Stripe checkout; otherwise HTTP 402 with 42 USDC plus card fallback.',
           responses: {
-            302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` },
+            200: { description: 'HTML checkout that auto-opens Stripe when Accept includes text/html.' },
             402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
           },
         },
@@ -1101,9 +1101,9 @@ function openApiSpec(origin) {
       '/v1/offer': {
         get: {
           operationId: 'offer42',
-          summary: 'Canonical $42 quote. HTML 302s to Stripe; otherwise HTTP 402 with 42 USDC plus card fallback.',
+          summary: 'Canonical $42 quote. Browsers get a live Stripe checkout; otherwise HTTP 402 with 42 USDC plus card fallback.',
           responses: {
-            302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` },
+            200: { description: 'HTML checkout that auto-opens Stripe when Accept includes text/html.' },
             402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
           },
         },
@@ -1597,7 +1597,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'canonical $42 quote: browsers 302 to Stripe; agents get a 402 with USDC plus card fallback',
+      note: 'canonical $42 quote: browsers get a live checkout that auto-opens Stripe; agents get a 402 with USDC plus card fallback',
     },
     {
       id: 'quote-42',
@@ -1605,7 +1605,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'directory alias of /v1/offer; GET or POST 402 with 42 USDC plus card fallback',
+      note: 'directory alias of /v1/offer; browsers get a live Stripe checkout; agents get 402 with 42 USDC plus card fallback',
     },
     {
       id: 'invoice-42',
@@ -3113,7 +3113,14 @@ ${walletPayControls(payTo, payUri)}
         url.pathname === '/v1/quote' ||
         url.pathname === '/v1/quote/')
     ) {
-      if (request.method === 'GET' && wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
+      if (request.method === 'GET' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const quote = sponsorCfg(c);
       if (c.free) {
         return json(
