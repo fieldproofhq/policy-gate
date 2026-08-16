@@ -844,6 +844,10 @@ function usdcQrUrl(payTo) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(usdcEip681(payTo))}`;
 }
 
+function btcQrUrl(sats = null) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(btcBip21(sats))}`;
+}
+
 function npmFunding() {
   return [
     { type: 'individual', url: 'https://fieldproofhq.github.io/offer/' },
@@ -1204,6 +1208,13 @@ function openApiSpec(origin) {
           operationId: 'payBtcUri',
           summary: 'text/uri-list BIP-21 invoice for ~$42 BTC at the live spot quote.',
           responses: { 200: { description: 'text/uri-list; one bitcoin: URI with amount' } },
+        },
+      },
+      '/v1/pay/btc.png': {
+        get: {
+          operationId: 'payBtcQr',
+          summary: '302 to a scannable QR of the live BIP-21 Bitcoin invoice for ~$42',
+          responses: { 302: { description: 'Redirect to QR image of the bitcoin: pay-to' } },
         },
       },
       '/v1/sponsor': {
@@ -1795,13 +1806,23 @@ function checkouts(c, origin, btc = null) {
       pay_uri: btc?.satsFor42
         ? `bitcoin:${BTC_ADDRESS}?amount=${(btc.satsFor42 / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`
         : null,
-      qr_url: btc?.satsFor42
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`bitcoin:${BTC_ADDRESS}?amount=${(btc.satsFor42 / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`)}`
-        : null,
+      qr_url: btcQrUrl(btc?.satsFor42 || null),
       meets_first_42: Boolean(btc?.satsFor42),
       note: btc?.satsFor42
         ? `send ${btc.satsFor42} sats (~$${GOAL_USD} at quoted spot); BIP21 pay_uri plus scannable QR`
         : 'public P2WPKH receive; ≥$42 of BTC at spot meets the bar; observed on mempool.space',
+    },
+    {
+      id: 'bitcoin-qr',
+      url: `${origin}/v1/pay/btc.png`,
+      asset: 'BTC',
+      amount_usd: 42,
+      amount_sats: btc?.satsFor42 ?? null,
+      pay_to: BTC_ADDRESS,
+      pay_uri: btcBip21(btc?.satsFor42 || null),
+      qr_url: btcQrUrl(btc?.satsFor42 || null),
+      meets_first_42: true,
+      note: '302 to a scannable QR of the live BIP-21 Bitcoin invoice; one ≥$42 on-chain receive meets the bar',
     },
   ];
 }
@@ -2271,6 +2292,7 @@ export default {
         `${url.origin}/v1/pay/usdc.uri`,
         `${url.origin}/v1/pay/usdc.png`,
         `${url.origin}/v1/pay/btc.uri`,
+        `${url.origin}/v1/pay/btc.png`,
         `${url.origin}/v1/pay/zelle.uri`,
         `${url.origin}/v1/pay/pack.uri`,
         `${url.origin}/v1/pay/tip-jar.uri`,
@@ -2383,6 +2405,7 @@ export default {
         `- POST /v1/sponsor x402: ${url.origin}/v1/sponsor`,
         `- Bitcoin: ${url.origin}/v1/pay/btc`,
         `- Bitcoin BIP-21 (text/uri-list): ${url.origin}/v1/pay/btc.uri`,
+        `- Bitcoin QR (scannable): ${url.origin}/v1/pay/btc.png`,
         `- Zelle $42 to 3labsio@gmail.com: ${url.origin}/v1/pay/zelle`,
         `- Zelle mailto (text/uri-list): ${url.origin}/v1/pay/zelle.uri`,
         '',
@@ -2678,6 +2701,12 @@ ${cardFallbackHtml()}
       return uriListResponse(btcBip21(btc?.satsFor42 || null));
     }
 
+    if (request.method === 'GET' && (url.pathname === '/v1/pay/btc.png' || url.pathname === '/v1/pay/btc.qr')) {
+      let btc = null;
+      try { btc = await observeBtc(); } catch { btc = null; }
+      return Response.redirect(btcQrUrl(btc?.satsFor42 || null), 302);
+    }
+
     if (request.method === 'GET' && url.pathname === '/v1/pay/btc') {
       let btc = null;
       try { btc = await observeBtc(); } catch { btc = null; }
@@ -2704,12 +2733,11 @@ ${cardFallbackHtml()}
       }
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payUri)}`;
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 in Bitcoin — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
+<meta http-equiv="refresh" content="0;url=${payUri}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 in Bitcoin</h1>
-<p>Opening card checkout. Or stay and send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>Opening wallet. Send <strong>${sats ? sats + ' sats' : 'enough BTC to be worth $42'}</strong>${btc?.priceUsd ? ` (~$${GOAL_USD} at $${btc.priceUsd}/BTC)` : ''} to the public address below. Scan the QR if your wallet does not open.</p>
 <p><a href="${payUri}" id="fp-btc-open" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open in wallet (BIP21)</a></p>
 <p><img src="${qrUrl}" width="240" height="240" alt="QR code for Bitcoin BIP21 invoice"></p>
 <p>Pay to:</p>
@@ -2737,7 +2765,6 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
   if (PAY_URI) location.replace(PAY_URI);
 })();
 </script>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
@@ -3125,6 +3152,7 @@ ${cardFallbackHtml()}
             usdc_qr: `${url.origin}/v1/pay/usdc.png`,
             btc: `${url.origin}/v1/pay/btc`,
             btc_uri: `${url.origin}/v1/pay/btc.uri`,
+            btc_qr: `${url.origin}/v1/pay/btc.png`,
             zelle: `${url.origin}/v1/pay/zelle`,
             zelle_uri: `${url.origin}/v1/pay/zelle.uri`,
             store: 'https://store.3labs.io',
