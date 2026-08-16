@@ -659,8 +659,9 @@ function payIndexHtml(origin, btc = null) {
 <p>External revenue is currently <strong id="remaining">$${GOAL_USD} remaining</strong>. One stranger payment of <strong>$42</strong> meets the bar. Self-buys and the $0.005 self-test do not count.</p>
 <p>Card first — these live Gumroad checkouts are $42:</p>
 <ul>
-<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — card; listed at $42</li>
+<li><a href="https://store.3labs.io">Browse the $42 store</a> — pack, tip jar, and CMO on one page</li>
 <li><a href="${origin}/v1/pay/pack">$42 Governance Pack</a> — card; one sale meets $42</li>
+<li><a href="${origin}/v1/pay/tip-jar">$42 tip jar</a> — card; listed at $42</li>
 </ul>
 <p>Or send $42 another way:</p>
 <ul>
@@ -1105,12 +1106,15 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/pack') {
       const checkout = 'https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true';
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+      const cover = 'https://public-files.gumroad.com/k5vh8fw0i5jkr4pzz9zveemcfjax';
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy the $42 Governance Pack — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Buy the $42 Governance Pack</h1>
-<p>One sale of the <strong>Agentic AI Governance Pack</strong> is <strong>$42</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad.</p>
-<p><a href="${checkout}">Open $42 checkout</a></p>
+<p>One sale is <strong>$42</strong> and meets Fieldproof's first-$42 external-income bar. Card checkout via Gumroad. Self-buys do not count.</p>
+<p><a href="${checkout}"><img src="${cover}" alt="Agentic AI Governance Pack" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p style="font-size:1.25rem;font-weight:700">$42</p>
+<p><a href="${checkout}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Buy the $42 pack</a></p>
 <p>Seven editable templates: implementation guide, acceptable-use policy, agent security standard, MCP/tool checklist, vendor risk, incident runbook, and data/privacy policy.</p>
-<p>After paying, sales show on the Gumroad dashboard and <a href="/v1/received">GET /v1/received</a> stays the on-chain observer. Self-buys do not count.</p>
+<p>Store catalog: <a href="https://store.3labs.io">store.3labs.io</a>. After paying, sales show on the Gumroad dashboard. <a href="/v1/received">GET /v1/received</a> is the on-chain observer.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }
