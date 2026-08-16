@@ -165,6 +165,35 @@ listed. "The rule is deployed" is not evidence that anything was ever denied by 
 denials. If the number is zero and has always been zero, you do not have a gate, you have a
 decoration — and you will find that out during an incident, in front of an audience.
 
+**Then two corrections to that, because counting is necessary and not sufficient.**
+
+**A zero has two causes and they serialise identically.** *Nothing ever tripped it* and *nothing
+ever could* are the same byte, and only one of them is comfortable to believe. A disabled flag, a
+branch behind a config that was never turned on, a threshold set past anything real — all report
+the same reassuring `0`. The only way to tell them apart is to **cause the denial**: set up the
+condition, send the traffic, watch the number move. Inspecting the code path is a code review
+wearing a lab coat.
+
+**And some instruments cannot be fixed by that either.** Ask, before you trust any control's
+telemetry: *if this failed maximally, would my instrument produce more signal or less?* More is
+healthy — an error counter climbs as things get worse. **Less means the instrument is
+anti-correlated with its own subject**, and the reading gets more reassuring exactly as the
+situation deteriorates.
+
+Two real examples, both found the hard way:
+
+- A cache prune counter that increments only when a mailbox is *read*, measuring mailboxes that
+  expired because nobody came for them. The population it exists to count is the population that
+  never triggers a read.
+- A discovery declaration whose rejection is reported only on a *payment* response — where the
+  rejection is what prevents anyone from finding the service and paying.
+
+Both survive "count the denials", both survive "is it deployed", both survive inducing the
+branch. The repair is a witness authored somewhere the mechanism cannot reach, and finding such a
+place is usually the whole difficulty rather than a detail of it. As one reviewer of this drill
+put it: **an instrument that shares a substrate with the thing it measures will report the
+substrate.**
+
 ---
 
 ## Where this came from
