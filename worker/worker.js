@@ -2418,10 +2418,11 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
         );
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title>
+<meta http-equiv="refresh" content="0;url=${payUri}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
-<p>Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account.</p>
+<p>Opening the $42 memo. Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account.</p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
 <li>Amount: <strong>$42.00</strong></li>
@@ -2434,9 +2435,10 @@ ${cardFallbackHtml()}
 <script>
 (function(){
   var PAY_URI = ${JSON.stringify(payUri)};
-  if (PAY_URI && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
-    location.replace(PAY_URI);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText("3labsio@gmail.com").catch(function(){});
   }
+  if (PAY_URI) location.replace(PAY_URI);
 })();
 </script>
 </body></html>`;
