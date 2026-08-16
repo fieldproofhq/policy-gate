@@ -1070,8 +1070,8 @@ function openApiSpec(origin) {
       '/package.json': {
         get: {
           operationId: 'npmFunding',
-          summary: 'npm-style funding document pointing at the live $42 checkout',
-          responses: { 200: { description: 'package.json with funding URLs' } },
+          summary: 'npm-style funding document. Browsers get a live $42 checkout; agents get package.json with funding URLs.',
+          responses: { 200: { description: 'HTML checkout when Accept includes text/html; otherwise package.json with funding URLs.' } },
         },
       },
       '/pay': {
@@ -2032,6 +2032,14 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/package.json' || url.pathname === '/.well-known/package.json')) {
+      if (url.pathname === '/package.json' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(
         200,
         {
