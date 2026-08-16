@@ -734,7 +734,7 @@ function checkouts(c, origin, btc = null) {
       network: c.network,
       checks_for_42: Number(c.priceUsd) > 0 ? Math.ceil(42 / Number(c.priceUsd)) : null,
       meets_first_42: false,
-      note: 'agent x402 landing; unpaid POST /v1/check quotes the public receive wallet',
+      note: 'x402 landing now leads with POST /v1/sponsor 42 USDC; per-check $0.005 remains secondary',
     },
     {
       id: 'x402-sponsor-42',
@@ -1081,14 +1081,16 @@ export default {
       const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
       const price = c.priceUsd || '0.005';
       const checks = Number(price) > 0 ? Math.ceil(42 / Number(price)) : 8400;
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay Policy Gate via x402 — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
-<h1>Pay Policy Gate via x402</h1>
-<p>Agents pay <strong>$${price} USDC on Base</strong> per <code>POST /v1/check</code>. ${checks} paid checks equal <strong>$42</strong>. Evaluate free first: <a href="/v1/example">GET /v1/example</a>.</p>
-<p>Pay to <code>${payTo}</code> on <code>${c.network || 'eip155:8453'}</code>.</p>
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 via x402 — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+<h1>Pay $42 via x402</h1>
+<p>One unpaid <code>GET</code> or <code>POST /v1/sponsor</code> quotes <strong>42 USDC on Base</strong> and meets the first-$42 bar. Self-pays and the $0.005 self-test do not count. <a href="${url.origin}/v1/sponsor">Open the $42 sponsor checkout</a>.</p>
+<pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${url.origin}/v1/sponsor</pre>
+<p>Pay to <code>${payTo}</code> on <code>${c.network || 'eip155:8453'}</code>. Discovery: <a href="/.well-known/x402">/.well-known/x402</a>.</p>
+<p>Per-check path (does not meet $42 alone): agents pay <strong>$${price}</strong> per <code>POST /v1/check</code> (${checks} checks = $42). Evaluate free first: <a href="/v1/example">GET /v1/example</a>.</p>
 <pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${url.origin}/v1/check \\
   -H "content-type: application/json" \\
   -d '{"policy_id":"default-action-tiers","request":{"action":"docs.read"}}'</pre>
-<p>An unpaid POST returns <strong>HTTP 402</strong> with the x402 quote. Discovery: <a href="/.well-known/x402">/.well-known/x402</a>. After settlement, the receive wallet is observed at <a href="/v1/received">GET /v1/received</a>. The $0.005 self-test is excluded.</p>
+<p>After settlement, check <a href="/v1/received">GET /v1/received</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
     }

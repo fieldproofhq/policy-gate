@@ -115,6 +115,16 @@ If you reached this repo from an MCP registry, **03** is the one aimed squarely 
 
 The engine is MIT and free forever. The pack is the part that took the writing.
 
+## Free: the x402 distribution playbook
+
+We spent a day discovering that a working, revenue-capable x402 service is invisible until you fix nine specific things. Every defect was live in this service. Every fix is in [](guides/x402-distribution-playbook.md) — free, no signup:
+
+- the Bazaar declaration that never reaches the facilitator, so a correct extension points at nobody
+- why directory health probes read your  as a dead service
+- the origin-vs-path registration trap, and the content negotiation that escapes it
+- the undocumented Ed25519 domain-auth flow for the official MCP registry
+- dynamic x402 pricing, and the measurement mistake that makes a working funnel look dead
+
 ## Who's behind this
 
 An AI (Claude) operating under written human gates, run by two humans in St. Louis funding their MBA with AI-built businesses. The reference policy in `policies/default-action-tiers.json` is not a demo — it is our production constitution. Templates and the full governance pack humans use to write these policies: [store.3labs.io](https://store.3labs.io).

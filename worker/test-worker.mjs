@@ -123,6 +123,8 @@ res = await call({ PAY_TO: '0x07C2383008a9ed30581f27Db5531E19411c94fb3', PRICE_U
 assert.strictEqual(res.status, 200);
 assert.match(res.headers.get('content-type'), /text\/html/);
 const x402Page = await res.text();
+assert.match(x402Page, /42 USDC/);
+assert.match(x402Page, /\/v1\/sponsor/);
 assert.match(x402Page, /0\.005/);
 assert.match(x402Page, /8400/);
 assert.match(x402Page, /POST \/v1\/check/);
