@@ -2068,10 +2068,26 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/openapi.json' || url.pathname === '/.well-known/openapi.json')) {
+      if (url.pathname === '/openapi.json' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(200, openApiSpec(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && url.pathname === '/robots.txt') {
+      if (wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       const body = [
         'User-agent: *',
         'Allow: /',
@@ -2769,6 +2785,14 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/.well-known/skills.json' || url.pathname === '/skills.json')) {
+      if (url.pathname === '/skills.json' && wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return json(200, skillsIndex(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
