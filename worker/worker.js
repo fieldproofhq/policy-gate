@@ -1432,6 +1432,7 @@ export default {
         `${url.origin}/.well-known/ai-plugin.json`,
         `${url.origin}/.well-known/mcp.json`,
         `${url.origin}/.well-known/llms.txt`,
+        `${url.origin}/llms-full.txt`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
@@ -1455,6 +1456,40 @@ export default {
         'Card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm.',
         'Store: https://store.3labs.io',
         `USDC/BTC/Zelle: ${url.origin}/v1/pay`,
+        `Full list: ${url.origin}/llms-full.txt`,
+        '',
+      ].join('\n');
+      return new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/plain; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+      });
+    }
+
+    if (request.method === 'GET' && (url.pathname === '/llms-full.txt' || url.pathname === '/.well-known/llms-full.txt')) {
+      const body = [
+        '# Fieldproof — every live $42 checkout',
+        '',
+        'One stranger payment of $42 (or 42 USDC / equivalent BTC) meets the first-income bar.',
+        '',
+        '## Card / bank / wallets',
+        `- Stripe Payment Link: ${STRIPE_PAYMENT_LINK}`,
+        '- Methods: card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm',
+        `- Mission offer (auto-opens Stripe): https://fieldproofhq.github.io/offer/`,
+        `- Worker short URL: ${url.origin}/pay`,
+        `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
+        '',
+        '## Store',
+        '- Store: https://store.3labs.io',
+        '- $42 Governance Pack: https://store.3labs.io/l/agentic-ai-governance-pack?wanted=true',
+        '- $42 tip jar: https://store.3labs.io/l/tip-jar?wanted=true',
+        '',
+        '## Crypto / Zelle',
+        `- 42 USDC on Base: ${url.origin}/v1/pay/usdc`,
+        `- POST /v1/sponsor x402: ${url.origin}/v1/sponsor`,
+        `- Bitcoin: ${url.origin}/v1/pay/btc`,
+        `- Zelle $42 to 3labsio@gmail.com: ${url.origin}/v1/pay/zelle`,
+        '',
+        'Observer: GET /v1/received. A 402 or HTTP 200 is not income.',
         '',
       ].join('\n');
       return new Response(body, {
