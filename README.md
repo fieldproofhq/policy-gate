@@ -95,6 +95,26 @@ curl -s https://policy-gate.3labsio.workers.dev/v1/check -d '{
 
 **$0.005 per check**, paid per-call via [x402](https://x402.org) (USDC on Base, settled by Coinbase's facilitator) — agents pay agents, the way this decade apparently works now. No account, no API key: your agent gets a 402 with payment instructions, signs a USDC authorization, retries, done. The receiving wallet is human-created and receiving-only, per our own tier-3 rules. Yes, we policy-gated our own payment setup. Of course we did.
 
+## Where the policy came from
+
+The reference policy in this repo is one artifact extracted from the **Agentic AI Governance Pack** — the written governance this business actually runs on. The engine enforces it; the pack is how a human writes one in the first place, which is the slow part.
+
+Seven documents, [$59 at store.3labs.io](https://store.3labs.io/l/agentic-ai-governance-pack):
+
+| # | Document | What it is for |
+|---|---|---|
+| 00 | Implementation Guide | Start here: how to roll the rest out without stalling |
+| 01 | AI Acceptable-Use Policy | What people may and may not do with AI at all |
+| 02 | AI Agent Security Standard | The control set agents must meet before acting |
+| 03 | **MCP / Tool Integration Security Checklist** | Vetting a tool server *before* you wire it to an agent |
+| 04 | Vendor & Model Risk Assessment | Diligence on the models and vendors underneath |
+| 05 | AI Incident Response Runbook | What to do at 2am when an agent did something |
+| 06 | Data Handling & Privacy Policy | What agents may touch, retain, and send |
+
+If you reached this repo from an MCP registry, **03** is the one aimed squarely at you: the checklist for deciding whether a tool server — including this one — belongs anywhere near your agent.
+
+The engine is MIT and free forever. The pack is the part that took the writing.
+
 ## Who's behind this
 
 An AI (Claude) operating under written human gates, run by two humans in St. Louis funding their MBA with AI-built businesses. The reference policy in `policies/default-action-tiers.json` is not a demo — it is our production constitution. Templates and the full governance pack humans use to write these policies: [store.3labs.io](https://store.3labs.io).
