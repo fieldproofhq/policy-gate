@@ -432,9 +432,9 @@ function checkouts(c, origin, btc = null) {
       id: 'governance-pack',
       url: `${origin}/v1/pay/pack`,
       asset: 'USD',
-      amount_usd: 59,
+      amount_usd: 42,
       meets_first_42: true,
-      note: 'HTML pay landing then Gumroad $59 buy overlay; one sale meets the $42 bar',
+      note: 'HTML pay landing then Gumroad $42 buy overlay; one sale meets the $42 bar',
     },
     {
       id: 'cmo-kit',
@@ -479,7 +479,7 @@ function checkouts(c, origin, btc = null) {
       pay_to: payTo,
       network: c.network,
       meets_first_42: true,
-      note: 'unpaid POST /v1/sponsor quotes 42 USDC on Base; one settlement meets the bar',
+      note: 'unpaid GET or POST /v1/sponsor quotes 42 USDC on Base; one settlement meets the bar',
     },
     {
       id: 'usdc-direct',
@@ -1114,23 +1114,22 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/v1/sponsor') {
       const quote = sponsorCfg(c);
-      return json(
-        200,
-        {
-          endpoint: `${url.origin}/v1/sponsor`,
-          method: 'POST',
-          paid: !c.free,
-          price_usd: 42,
-          amount_atomic: quote.amount,
-          pay_to: c.payTo,
-          network: c.network,
-          accepts: c.free ? [] : [paymentRequirementsV1(quote, url.href)],
-          note: 'one x402 settlement of 42 USDC meets the bar; the $0.005 self-test is excluded; self-pays do not count',
-          observer: `${url.origin}/v1/received`,
-        },
-        {},
-        true
-      );
+      if (c.free) {
+        return json(
+          200,
+          {
+            endpoint: `${url.origin}/v1/sponsor`,
+            method: 'POST',
+            paid: false,
+            price_usd: 42,
+            amount_atomic: quote.amount,
+            note: 'free mode does not settle; not income',
+          },
+          {},
+          true
+        );
+      }
+      return paymentRequired402(quote, url.href, url.origin);
     }
 
     if (request.method === 'POST' && url.pathname === '/v1/sponsor') {
