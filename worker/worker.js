@@ -2529,12 +2529,10 @@ export default {
       const checks = Number(price) > 0 ? Math.ceil(42 / Number(price)) : 8400;
       const payUri = usdcEip681(payTo);
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 via x402 — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 via x402</h1>
-<p>Opening card checkout. One transfer of <strong>42 USDC</strong> on <strong>Base</strong> also meets the bar. Agents can settle the same amount via <code>POST /v1/sponsor</code>.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a></p>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong> meets the bar. Agents settle the same amount via <code>POST /v1/sponsor</code>. This page does not open card checkout.</p>
 ${walletPayControls(payTo, payUri)}
 <p><a href="${url.origin}/v1/sponsor" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open the 42 USDC checkout</a></p>
 <p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
@@ -2546,7 +2544,6 @@ ${walletPayControls(payTo, payUri)}
   -d '{"policy_id":"default-action-tiers","request":{"action":"docs.read"}}'</pre>
 <p>After settlement, check <a href="/v1/received">GET /v1/received</a>.</p>
 ${cardFallbackHtml()}
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
