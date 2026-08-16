@@ -2662,14 +2662,7 @@ ${cardFallbackHtml()}
       request.method === 'GET' &&
       (url.pathname === '/.well-known/agent-card.json' || url.pathname === '/.well-known/agent.json')
     ) {
-      if (url.pathname === '/.well-known/agent-card.json' && wantsHtml(request)) {
-        let btc = null;
-        try { btc = await observeBtc(); } catch { btc = null; }
-        return new Response(payIndexHtml(url.origin, btc), {
-          status: 200,
-          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
-        });
-      }
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return json(200, agentCard(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
@@ -2689,7 +2682,7 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/nodeinfo/2.1' || url.pathname === '/.well-known/nodeinfo/2.1')) {
-      if (url.pathname === '/nodeinfo/2.1' && wantsHtml(request)) return htmlCheckoutResponse(url.origin);
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return json(200, nodeInfo21(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
@@ -2713,7 +2706,7 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/.well-known/host-meta' || url.pathname === '/.well-known/host-meta.xml')) {
-      if (url.pathname === '/.well-known/host-meta' && wantsHtml(request)) return htmlCheckoutResponse(url.origin);
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return new Response(hostMetaXml(url.origin), {
         status: 200,
         headers: {
@@ -2737,14 +2730,7 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/.well-known/did.json' || url.pathname === '/did.json')) {
-      if (url.pathname === '/did.json' && wantsHtml(request)) {
-        let btc = null;
-        try { btc = await observeBtc(); } catch { btc = null; }
-        return new Response(payIndexHtml(url.origin, btc), {
-          status: 200,
-          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
-        });
-      }
+      if (wantsHtml(request)) return htmlCheckoutResponse(url.origin);
       return new Response(JSON.stringify(didWeb(url.origin), null, 2), {
         status: 200,
         headers: {
