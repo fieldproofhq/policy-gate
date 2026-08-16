@@ -687,19 +687,11 @@ function payIndexHtml(origin, btc = null) {
 <ul>
 <li><a href="${origin}/v1/sponsor">42 USDC / x402</a> — browser QR or agent POST /v1/sponsor</li>
 <li><a href="${origin}/v1/pay/usdc">42 USDC on Base</a> — EIP-681 + QR</li>
-<li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com memo Fieldproof</li>
+<li><a href="${origin}/v1/pay/zelle">$42 Zelle</a> — 3labsio@gmail.com</li>
 <li><a href="${origin}/v1/pay/btc">${btcLabel}</a> — BIP21 Bitcoin</li>
-<li><a href="${origin}/v1/pay/cmo">$39 CMO Launch Kit</a> — counts toward $42; does not meet it alone</li>
-<li><a href="${origin}/v1/pay/x402">x402 agent checks</a> — $0.005 USDC each; 8400 = $42</li>
+<li><a href="${origin}/v1/pay/x402">x402 agent docs</a> — per-check quote</li>
 </ul>
 <p>More: <a href="https://fieldproofhq.github.io">fieldproofhq.github.io</a>.</p>
-<script>
-fetch('${origin}/v1/received').then(function(r){return r.json()}).then(function(o){
-  if (!o || typeof o.remainingUsd !== 'number') return;
-  var el = document.getElementById('remaining');
-  if (el) el.textContent = o.goalMet ? ('goal met ($' + o.externalUsd + ' observed)') : ('$' + o.remainingUsd + ' remaining');
-}).catch(function(){});
-</script>
 </body></html>`;
 }
 
