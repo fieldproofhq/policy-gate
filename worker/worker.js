@@ -3052,11 +3052,10 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
         );
       }
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send $42 via Zelle — Fieldproof</title>
-<meta http-equiv="refresh" content="0;url=${payUri}">
 <link rel="payment" href="${STRIPE_PAYMENT_LINK}">
 </head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Send $42 via Zelle</h1>
-<p>Opening the $42 memo. Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account. Scan the QR in a banking app that reads mailto invoices.</p>
+<p>This page stays here so you can pick a rail. Send <strong>$42 USD</strong> via Zelle. Zero fees. No Fieldproof account. Scan the QR in a banking app that reads mailto invoices.</p>
 <p><img src="${zelleQrUrl()}" width="240" height="240" alt="QR code for $42 Zelle to 3labsio@gmail.com"></p>
 <p>In your US banking app, open Zelle and send:</p>
 <ul>
@@ -3067,15 +3066,7 @@ document.querySelectorAll("[data-copy]").forEach(function(btn){
 <p><a href="${payUri}" id="fp-zelle-open" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open $42 Zelle memo</a></p>
 ${copyPayControls('3labsio@gmail.com', '42.00', 'Copy email', 'Copy $42')}
 ${cardFallbackHtml()}
-<script>
-(function(){
-  var PAY_URI = ${JSON.stringify(payUri)};
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText("3labsio@gmail.com").catch(function(){});
-  }
-  if (PAY_URI) location.replace(PAY_URI);
-})();
-</script>
+<p>Pack: <a href="${GUMROAD_PACK}">Buy the $42 pack</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
