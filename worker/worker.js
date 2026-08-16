@@ -1861,9 +1861,9 @@ function checkouts(c, origin, btc = null) {
       url: `${origin}/v1/pay/tip-jar.uri`,
       asset: 'USD',
       amount_usd: 42,
-      pay_uri: STRIPE_PAYMENT_LINK,
+      pay_uri: GUMROAD_TIP,
       meets_first_42: true,
-      note: 'text/uri-list of the live $42 Stripe Payment Link; agents open the first URI',
+      note: 'text/uri-list of the live $42 tip jar on Gumroad; that checkout is PWYW listed at $42, not a different kit',
     },
     {
       id: 'x402-check',
@@ -2896,21 +2896,21 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/tip-jar.uri' || url.pathname === '/v1/pay/tip-jar.txt')) {
-      return uriListResponse(STRIPE_PAYMENT_LINK);
+      return uriListResponse(GUMROAD_TIP);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/pay/tip-jar') {
       const checkout = GUMROAD_TIP;
-      if (wantsUriList(request)) return uriListResponse(STRIPE_PAYMENT_LINK);
+      if (wantsUriList(request)) return uriListResponse(GUMROAD_TIP);
       if (wantsJson(request)) {
         return json(
           200,
           {
-            scheme: 'stripe',
+            scheme: 'gumroad',
             asset: 'USD',
             amountUsd: GOAL_USD,
-            uri: STRIPE_PAYMENT_LINK,
-            url: STRIPE_PAYMENT_LINK,
+            uri: checkout,
+            url: checkout,
             product: 'tip-jar',
             card: STRIPE_PAYMENT_LINK,
             gumroad: checkout,
@@ -2922,17 +2922,17 @@ ${cardFallbackHtml()}
       const overlay = 'https://fieldproof.gumroad.com/l/tip-jar';
       const cover = 'https://public-files.gumroad.com/5u12tofcw2kg35lga2na9ri6cba3';
       const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Support Fieldproof $42 — tip jar</title>
-<meta http-equiv="refresh" content="0;url=${STRIPE_PAYMENT_LINK}">
-<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+<meta http-equiv="refresh" content="0;url=${checkout}">
+<link rel="payment" href="${checkout}">
 <script src="https://gumroad.com/js/gumroad.js"></script></head><body style="font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Support Fieldproof — $42 tip jar</h1>
-<p>Opening card checkout. Listed at <strong>$42</strong>. No Fieldproof account. Or stay and pay on Gumroad.</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer"><img src="${cover}" alt="Fieldproof tip jar" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
+<p>Opening the $42 tip jar. Listed at <strong>$42</strong>. Pay more if you want. No Fieldproof account. Generic card checkout is a different product.</p>
+<p><a href="${checkout}"><img src="${cover}" alt="Fieldproof tip jar" width="640" height="336" style="display:block;width:100%;height:auto;border-radius:12px;background:#111"></a></p>
 <p style="font-size:1.25rem;font-weight:700">$42+</p>
-<p><a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> <a class="gumroad-button" href="${overlay}">Support $42 on Gumroad</a> <a href="${checkout}">${checkout.includes('wanted=true') ? 'Gumroad overlay' : 'tip jar'}</a></p>
+<p><a class="gumroad-button" href="${overlay}">Support $42 on Gumroad</a> <a href="${STRIPE_PAYMENT_LINK}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Pay $42 with card</a> for the Ethics Check and C-suite Word ZIPs (not this tip).</p>
 ${cardFallbackHtml()}
-<p>If nothing happens, use the button. Store: <a href="https://store.3labs.io/l/tip-jar?wanted=true">store.3labs.io/l/tip-jar</a>.</p>
-<script>location.replace(${JSON.stringify(STRIPE_PAYMENT_LINK)});</script>
+<p>If nothing happens, use the button. Store: <a href="${checkout}">store.3labs.io/l/tip-jar</a>. Scan: <a href="${url.origin}/v1/pay/scan">USDC / BTC / Zelle</a>.</p>
+<script>location.replace(${JSON.stringify(checkout)});</script>
 </body></html>`;
       return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
