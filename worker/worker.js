@@ -703,6 +703,64 @@ function paymentLinkHeader() {
   return `<${STRIPE_PAYMENT_LINK}>; rel="payment"; title="Pay $42 with card"`;
 }
 
+function openApiSpec(origin) {
+  const fallback = stripeFallbackOffer();
+  return {
+    openapi: '3.1.0',
+    info: {
+      title: 'Fieldproof Policy Gate',
+      version: '0.2.0',
+      description:
+        'Deterministic policy verdicts for agents. Pay $42 with card or 42 USDC on Base via POST /v1/sponsor.',
+      contact: { url: 'https://fieldproofhq.github.io' },
+    },
+    servers: [{ url: origin }],
+    externalDocs: { description: 'Pay $42 with card', url: STRIPE_PAYMENT_LINK },
+    paths: {
+      '/pay': {
+        get: {
+          operationId: 'payCardRedirect',
+          summary: '302 to the live $42 Stripe Payment Link',
+          responses: { 302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` } },
+        },
+      },
+      '/v1/sponsor': {
+        post: {
+          operationId: 'sponsor42',
+          summary: 'Unpaid request quotes 42 USDC on Base (x402) plus a card fallback',
+          responses: {
+            402: {
+              description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.',
+            },
+          },
+        },
+      },
+      '/v1/check': {
+        post: {
+          operationId: 'policyCheck',
+          summary: 'Evaluate an action. Unpaid POST returns x402 plus fallback.url for card.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    policy_id: { type: 'string' },
+                    request: { type: 'object', required: ['action'], properties: { action: { type: 'string' } } },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 402: { description: 'Payment required' }, 200: { description: 'Verdict' } },
+        },
+      },
+    },
+    'x-payment': fallback,
+  };
+}
+
 /** A2A Agent Card. A2A clients GET /.well-known/agent-card.json (and legacy agent.json). */
 function agentCard(origin) {
   const fallback = stripeFallbackOffer();
@@ -1286,6 +1344,10 @@ export default {
       return Response.redirect(STRIPE_PAYMENT_LINK, 302);
     }
 
+    if (request.method === 'GET' && (url.pathname === '/openapi.json' || url.pathname === '/.well-known/openapi.json')) {
+      return json(200, openApiSpec(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
     if (request.method === 'GET' && url.pathname === '/robots.txt') {
       const body = [
         'User-agent: *',
@@ -1309,6 +1371,7 @@ export default {
         `${url.origin}/.well-known/x402`,
         `${url.origin}/.well-known/pay`,
         `${url.origin}/.well-known/agent-card.json`,
+        `${url.origin}/openapi.json`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
