@@ -885,6 +885,27 @@ function hostMetaJson(origin) {
   };
 }
 
+function didWeb(origin) {
+  const host = new URL(origin).host;
+  const id = `did:web:${host}`;
+  const alsoKnownAs = ['https://fieldproofhq.github.io/', `acct:pay@${host}`];
+  if (host !== 'fieldproofhq.github.io') alsoKnownAs.push('did:web:fieldproofhq.github.io');
+  if (host !== 'policy-gate.3labsio.workers.dev') alsoKnownAs.push('did:web:policy-gate.3labsio.workers.dev');
+  return {
+    '@context': ['https://www.w3.org/ns/did/v1'],
+    id,
+    alsoKnownAs,
+    service: [
+      { id: `${id}#stripe`, type: 'PaymentService', serviceEndpoint: STRIPE_PAYMENT_LINK },
+      { id: `${id}#invoice`, type: 'PaymentService', serviceEndpoint: `${origin}/v1/invoice` },
+      { id: `${id}#offer`, type: 'PaymentService', serviceEndpoint: `${origin}/v1/offer` },
+      { id: `${id}#card`, type: 'PaymentService', serviceEndpoint: `${origin}/v1/pay/card.uri` },
+      { id: `${id}#usdc`, type: 'PaymentService', serviceEndpoint: `${origin}/v1/pay/usdc.uri` },
+      { id: `${id}#btc`, type: 'PaymentService', serviceEndpoint: `${origin}/v1/pay/btc.uri` },
+    ],
+  };
+}
+
 function hostMetaXml(origin) {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -1005,6 +1026,13 @@ function openApiSpec(origin) {
           operationId: 'hostMetaJson',
           summary: 'RFC 6415 JSON host-meta. rel=payment is the live $42 Stripe checkout.',
           responses: { 200: { description: 'application/jrd+json host-meta' } },
+        },
+      },
+      '/.well-known/did.json': {
+        get: {
+          operationId: 'didWeb',
+          summary: 'W3C did:web document. PaymentService #stripe is the live $42 Stripe checkout.',
+          responses: { 200: { description: 'application/did+json DID document' } },
         },
       },
       '/.well-known/webfinger': {
@@ -2021,6 +2049,7 @@ export default {
         `${url.origin}/.well-known/webfinger`,
         `${url.origin}/.well-known/host-meta`,
         `${url.origin}/.well-known/host-meta.json`,
+        `${url.origin}/.well-known/did.json`,
         `${url.origin}/.well-known/nodeinfo`,
         `${url.origin}/nodeinfo/2.1`,
         `${url.origin}/.well-known/llms.txt`,
@@ -2082,6 +2111,7 @@ export default {
         `- WebFinger: ${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
         `- NodeInfo: ${url.origin}/.well-known/nodeinfo`,
         `- host-meta.json: ${url.origin}/.well-known/host-meta.json`,
+        `- did:web: ${url.origin}/.well-known/did.json`,
         '',
         '## Store',
         '- Store: https://store.3labs.io',
@@ -2526,6 +2556,17 @@ ${cardFallbackHtml()}
       });
     }
 
+    if (request.method === 'GET' && (url.pathname === '/.well-known/did.json' || url.pathname === '/did.json')) {
+      return new Response(JSON.stringify(didWeb(url.origin), null, 2), {
+        status: 200,
+        headers: {
+          'content-type': 'application/did+json; charset=utf-8',
+          Link: paymentLinkHeader(),
+          ...corsHeaders(),
+        },
+      });
+    }
+
     if (
       request.method === 'GET' &&
       (url.pathname === '/humans.txt' || url.pathname === '/.well-known/humans.txt')
@@ -2629,6 +2670,7 @@ ${cardFallbackHtml()}
             webfinger: `${url.origin}/.well-known/webfinger?resource=acct:pay@${new URL(url.origin).host}`,
             nodeinfo: `${url.origin}/.well-known/nodeinfo`,
             host_meta: `${url.origin}/.well-known/host-meta.json`,
+            did: `${url.origin}/.well-known/did.json`,
           },
         },
         {},
