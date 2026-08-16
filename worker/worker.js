@@ -1037,6 +1037,21 @@ export default {
       }
     }
 
+    // Standard MCP discovery document. Some directories link this path from an
+    // MCP listing and use it as the machine-readable source of the server URL.
+    if (request.method === 'GET' && url.pathname === '/.well-known/mcp.json') {
+      return json(200, {
+        name: 'fieldproof-policy-gate',
+        title: 'Fieldproof Policy Gate',
+        description: 'Deterministic allow / require_approval / deny verdicts for proposed agent actions.',
+        server_url: `${url.origin}/mcp`,
+        transport: 'streamable-http',
+        protocol: 'mcp',
+        tools: MCP_TOOLS.map((t) => ({ name: t.name, description: t.description })),
+        x402: `${url.origin}/.well-known/x402`,
+      }, {}, true);
+    }
+
     if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
       if (wantsHtml(request)) {
         let btc = null;

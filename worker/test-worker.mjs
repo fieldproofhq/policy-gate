@@ -397,6 +397,13 @@ async function mcp(env, method, params) {
   return res.json();
 }
 
+res = await call(paidEnv, 'GET', '/.well-known/mcp.json');
+assert.strictEqual(res.status, 200, 'MCP discovery document is public');
+const mcpDiscovery = await res.json();
+assert.strictEqual(mcpDiscovery.server_url, `${base}/mcp`);
+assert.strictEqual(mcpDiscovery.x402, `${base}/.well-known/x402`);
+assert.ok(mcpDiscovery.tools.some((t) => t.name === 'policy_check'));
+
 let m = await mcp(paidEnv, 'initialize', { protocolVersion: '2025-06-18' });
 assert.strictEqual(m.result.serverInfo.name, 'fieldproof-policy-gate');
 assert.ok(m.result.capabilities.tools, 'declares tool capability');
