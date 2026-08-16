@@ -733,6 +733,13 @@ function openApiSpec(origin) {
             402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
           },
         },
+        post: {
+          operationId: 'offer42Post',
+          summary: 'Same $42 quote for POST-only agents. Always 402 with 42 USDC plus card fallback.',
+          responses: {
+            402: { description: 'Payment required. accepts is USDC; fallback.url is the $42 card path.' },
+          },
+        },
       },
       '/v1/sponsor': {
         post: {
@@ -1951,13 +1958,13 @@ ${cardFallbackHtml()}
       );
     }
 
-    if (request.method === 'GET' && (url.pathname === '/v1/offer' || url.pathname === '/v1/offer/')) {
-      if (wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
+    if ((request.method === 'GET' || request.method === 'POST') && (url.pathname === '/v1/offer' || url.pathname === '/v1/offer/')) {
+      if (request.method === 'GET' && wantsHtml(request)) return Response.redirect(STRIPE_PAYMENT_LINK, 302);
       const quote = sponsorCfg(c);
       if (c.free) {
         return json(
           200,
-          { price_usd: 42, card: STRIPE_PAYMENT_LINK, fallback: stripeFallbackOffer() },
+          { price_usd: 42, card: STRIPE_PAYMENT_LINK, fallback: stripeFallbackOffer(), method: request.method },
           { Link: paymentLinkHeader() },
           true
         );
