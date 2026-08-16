@@ -681,6 +681,8 @@ assert.match(payPage, /location\.replace\(PAY_URI\)/);
 assert.doesNotMatch(payPage, /private[_ ]?key/i);
 assert.match(payPage, /Pay \$42 with card/);
 assert.match(payPage, /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
+assert.match(payPage, /http-equiv="refresh"/);
+assert.match(payPage, /location\.replace\("https:\/\/buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00"\)/);
 const zelle = listed.checkouts.find((o) => o.id === 'zelle');
 assert.equal(zelle.amount_usd, 42);
 assert.equal(zelle.meets_first_42, true);
