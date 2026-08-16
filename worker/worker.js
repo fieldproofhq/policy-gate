@@ -1077,8 +1077,11 @@ function openApiSpec(origin) {
       '/pay': {
         get: {
           operationId: 'payCardRedirect',
-          summary: '302 to the live $42 Stripe Payment Link',
-          responses: { 302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` } },
+          summary: 'Browser short URL: live $42 HTML checkout that auto-opens Stripe. Non-HTML GET still 302s to the Payment Link.',
+          responses: {
+            200: { description: 'HTML checkout that auto-opens Stripe when Accept includes text/html.' },
+            302: { description: `Redirect to ${STRIPE_PAYMENT_LINK}` },
+          },
         },
       },
       '/v1/quote': {
@@ -2045,6 +2048,14 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/pay' || url.pathname === '/pay/')) {
+      if (wantsHtml(request)) {
+        let btc = null;
+        try { btc = await observeBtc(); } catch { btc = null; }
+        return new Response(payIndexHtml(url.origin, btc), {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() },
+        });
+      }
       return Response.redirect(STRIPE_PAYMENT_LINK, 302);
     }
 
@@ -2147,7 +2158,7 @@ export default {
         `- Card QR (scannable): ${url.origin}/v1/pay/card.png`,
         '- Methods: card, Cash App, Link, US bank debit, Klarna, Afterpay, Affirm',
         `- Mission offer (auto-opens Stripe): https://fieldproofhq.github.io/offer/`,
-        `- Worker short URL: ${url.origin}/pay`,
+        `- Worker short URL (HTML auto-opens Stripe): ${url.origin}/pay`,
         `- Agent quote (GET or POST 402): ${url.origin}/v1/offer`,
         `- Directory quote alias (GET or POST 402): ${url.origin}/v1/quote`,
         `- Multi-rail invoice (HTML auto-opens Stripe): ${url.origin}/v1/invoice`,
