@@ -463,7 +463,7 @@ const MCP_TOOLS = [
   {
     name: 'first_42_sponsor',
     description:
-      'Pay Fieldproof 42 USDC on Base in one x402 settlement. Returns the unpaid POST /v1/sponsor quote (42000000 atomic).',
+      'Pay Fieldproof $42: 42 USDC on Base via x402, or the Stripe card Payment Link in the quote fallback. Returns the unpaid POST /v1/sponsor quote (42000000 atomic) plus a card URL.',
     inputSchema: { type: 'object', properties: {} },
   },
 ];
@@ -684,6 +684,24 @@ const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPCS = ['https://mainnet.base.org', 'https://base.publicnode.com', 'https://1rpc.io/base'];
 const BTC_ADDRESS = 'bc1qxwjhlllya7yvh0kvfggrjfzxwme7zhqs07777t';
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00';
+
+/** Card path for agents that get a 402 but cannot settle USDC. Kept out of `accepts`
+ *  so x402 facilitators still see only the exact-scheme USDC quote. */
+function stripeFallbackOffer() {
+  return {
+    scheme: 'stripe',
+    network: 'fiat',
+    amountUsd: GOAL_USD,
+    asset: 'USD',
+    url: STRIPE_PAYMENT_LINK,
+    methods: ['card', 'cashapp', 'link', 'us_bank_account', 'klarna', 'afterpay_clearpay', 'affirm'],
+    note: 'If you cannot settle USDC on Base, pay $42 with card. One payment meets the first-$42 bar.',
+  };
+}
+
+function paymentLinkHeader() {
+  return `<${STRIPE_PAYMENT_LINK}>; rel="payment"; title="Pay $42 with card"`;
+}
 
 function satsForGoal(priceUsd, goalUsd = GOAL_USD) {
   const price = Number(priceUsd);
@@ -938,6 +956,7 @@ function bazaarExtension(origin) {
 }
 
 function paymentRequired402(c, url, origin, errMsg) {
+  const fallback = stripeFallbackOffer();
   const v2 = {
     x402Version: 2,
     error: errMsg || 'PAYMENT-SIGNATURE header is required',
@@ -949,15 +968,24 @@ function paymentRequired402(c, url, origin, errMsg) {
       tags: ['governance', 'policy', 'safety', 'agents'],
     },
     accepts: [paymentRequirementsV2(c)],
+    fallback,
     extensions: bazaarExtension(origin),
   };
-  // v1-compatible body for older clients (v1 dialect: network name + maxAmountRequired):
-  const v1Body = { x402Version: 1, error: v2.error, accepts: [paymentRequirementsV1(c, url)] };
+  // v1-compatible body for older clients (v1 dialect: network name + maxAmountRequired).
+  // `fallback` is sibling to `accepts` so x402 clients keep settling USDC; card-capable
+  // agents can follow the Stripe URL instead.
+  const v1Body = {
+    x402Version: 1,
+    error: v2.error,
+    accepts: [paymentRequirementsV1(c, url)],
+    fallback,
+  };
   return new Response(JSON.stringify(v1Body, null, 2), {
     status: 402,
     headers: {
       'content-type': 'application/json',
       'PAYMENT-REQUIRED': b64encode(v2),
+      Link: paymentLinkHeader(),
       ...corsHeaders(),
     },
   });
@@ -1016,7 +1044,7 @@ function corsHeaders() {
     'access-control-allow-origin': '*',
     'access-control-allow-methods': 'GET, POST, OPTIONS',
     'access-control-allow-headers': 'content-type, x-payment, payment-signature',
-    'access-control-expose-headers': 'payment-required, payment-response, x-payment-response, x-fieldproof-free',
+    'access-control-expose-headers': 'payment-required, payment-response, x-payment-response, x-fieldproof-free, link',
   };
 }
 
@@ -1132,7 +1160,8 @@ export default {
               price_usd: c.priceUsd,
               endpoint: `${url.origin}/v1/check`,
               accepts: [paymentRequirementsV1(c, `${url.origin}/v1/check`)],
-              how: 'POST the endpoint with an X-PAYMENT header (x402). Free evaluation: policy_example, policy_rules.',
+              fallback: stripeFallbackOffer(),
+              how: 'POST the endpoint with an X-PAYMENT header (x402), or open fallback.url to pay $42 with card. Free evaluation: policy_example, policy_rules.',
             });
           }
           if (name === 'first_42_sponsor') {
@@ -1144,7 +1173,8 @@ export default {
               endpoint: `${url.origin}/v1/sponsor`,
               pay_to: c.payTo,
               accepts: c.free ? [] : [paymentRequirementsV1(quote, `${url.origin}/v1/sponsor`)],
-              how: 'POST /v1/sponsor with an X-PAYMENT header (x402) for 42 USDC on Base. One settlement meets the first-$42 bar. Self-pays do not count.',
+              fallback: stripeFallbackOffer(),
+              how: 'POST /v1/sponsor with an X-PAYMENT header (x402) for 42 USDC on Base, or open fallback.url to pay $42 with card. One settlement meets the first-$42 bar.',
               observer: `${url.origin}/v1/received`,
             });
           }
@@ -1471,6 +1501,7 @@ ${cardFallbackHtml()}
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/x402') {
+      const fallback = stripeFallbackOffer();
       return json(
         200,
         {
@@ -1479,6 +1510,7 @@ ${cardFallbackHtml()}
           description:
             'Deterministic allow / require_approval / deny verdicts for proposed agent actions. Same input, same verdict, with the matched rule and rationale returned so it is auditable.',
           tags: ['governance', 'policy', 'safety', 'agents'],
+          fallback,
           resources: [
             {
               url: `${url.origin}/v1/check`,
@@ -1486,6 +1518,7 @@ ${cardFallbackHtml()}
               mimeType: 'application/json',
               description: 'Evaluate a proposed action against a policy and return a verdict',
               accepts: c.free ? [] : [paymentRequirementsV2(c)],
+              fallback,
               free: c.free,
               evaluate_before_paying: [`${url.origin}/v1/example`, `${url.origin}/v1/policies`],
             },
@@ -1495,13 +1528,14 @@ ${cardFallbackHtml()}
               mimeType: 'application/json',
               description: 'One 42 USDC x402 settlement that meets Fieldproof first-$42 external-income bar. Self-test excluded.',
               accepts: c.free ? [] : [paymentRequirementsV2(sponsorCfg(c))],
+              fallback,
               free: c.free,
             },
           ],
           docs: 'https://github.com/fieldproofhq/policy-gate',
           contact: 'https://github.com/fieldproofhq/policy-gate/issues',
         },
-        {},
+        { Link: paymentLinkHeader() },
         true
       );
     }
@@ -1522,12 +1556,13 @@ ${cardFallbackHtml()}
           paid: !c.free,
           usage: 'POST { "policy_id": "default-action-tiers" | "policy": {...}, "request": { "action": "...", "params": {...} } }',
           accepts: c.free ? [] : [paymentRequirementsV1(c, url.href)],
+          fallback: stripeFallbackOffer(),
           price_usd: c.free ? 0 : c.priceUsd,
-          protocol: c.free ? 'free mode' : 'x402 — POST without payment returns 402 with signing instructions',
+          protocol: c.free ? 'free mode' : 'x402 — POST without payment returns 402 with signing instructions; fallback.url is the $42 card path',
           evaluate_before_paying: [`${url.origin}/v1/example`, `${url.origin}/v1/policies`],
           discovery: `${url.origin}/.well-known/x402`,
         },
-        {},
+        { Link: paymentLinkHeader() },
         true
       );
     }

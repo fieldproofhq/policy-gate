@@ -229,7 +229,11 @@ assert.strictEqual(res.status, 402, 'unpaid GET /v1/sponsor with JSON Accept mus
 const sponsorGet = await res.json();
 assert.equal(sponsorGet.accepts[0].maxAmountRequired, '42000000');
 assert.notEqual(sponsorGet.accepts[0].maxAmountRequired, '5000');
+assert.equal(sponsorGet.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.equal(sponsorGet.fallback.amountUsd, 42);
 assert.ok(res.headers.get('payment-required'), 'JSON GET carries the v2 PAYMENT-REQUIRED header');
+assert.match(res.headers.get('link') || '', /rel="payment"/);
+assert.match(res.headers.get('link') || '', /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 res = await call(sponsorEnv, 'GET', '/v1/sponsor', undefined, { accept: 'text/html' });
 assert.strictEqual(res.status, 200);
 assert.match(res.headers.get('content-type'), /text\/html/);
@@ -252,9 +256,15 @@ assert.strictEqual(res.status, 402);
 const sponsor402 = await res.json();
 assert.equal(sponsor402.accepts[0].maxAmountRequired, '42000000');
 assert.notEqual(sponsor402.accepts[0].maxAmountRequired, '5000');
+assert.equal(sponsor402.fallback.scheme, 'stripe');
+assert.equal(sponsor402.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 res = await call(sponsorEnv, 'GET', '/.well-known/x402');
 const discovered = await res.json();
 assert.ok(discovered.resources.some((item) => item.url.endsWith('/v1/sponsor') && item.accepts[0].amount === '42000000'));
+assert.equal(discovered.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.ok(discovered.resources.every((item) => item.fallback?.url === discovered.fallback.url));
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 const usdc = listed.checkouts.find((o) => o.id === 'usdc-direct');
 assert.equal(usdc.amount_usd, 42);
 assert.equal(usdc.meets_first_42, true);
@@ -410,6 +420,13 @@ assert.strictEqual(v2.accepts[0].resource, undefined, 'v2 reqs must NOT carry re
 assert.strictEqual(v2.accepts[0].asset, '0x036CbD53842c5426634e7929541eC2318f3dCF7e', 'sepolia USDC');
 assert.ok(v2.extensions.bazaar, 'bazaar discovery extension present');
 assert.ok(v2.resource.serviceName === 'Fieldproof Policy Gate');
+assert.equal(v1body.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.equal(v1body.fallback.amountUsd, 42);
+assert.equal(v1body.fallback.scheme, 'stripe');
+assert.equal(v1body.accepts.length, 1, 'card fallback stays out of x402 accepts');
+assert.equal(v2.fallback.url, v1body.fallback.url);
+assert.match(res.headers.get('link') || '', /rel="payment"/);
+assert.match(res.headers.get('link') || '', /buy\.stripe\.com\/eVq4gA91U3Rr1Yt6z31sQ00/);
 
 /* free-mode paths on paid env stay free */
 res = await call(paidEnv, 'GET', '/healthz');
@@ -475,12 +492,16 @@ assert.strictEqual(wk.x402Version, 2);
 assert.ok(wk.resources?.length >= 1, 'manifest lists at least one resource');
 assert.ok(wk.resources[0].url.endsWith('/v1/check'), 'manifest points at the paid route');
 assert.strictEqual(wk.resources[0].accepts[0].payTo, paidEnv.PAY_TO, 'manifest quotes the real payee');
+assert.equal(wk.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.equal(wk.resources[0].fallback.url, wk.fallback.url);
 
 res = await call(paidEnv, 'GET', '/v1/check');
 assert.strictEqual(res.status, 200, 'GET documents the route; health probes read non-2xx as a dead service');
 const getDocs = await res.json();
 assert.strictEqual(getDocs.method, 'POST', 'docs name the paid method');
 assert.ok(getDocs.accepts?.[0]?.payTo === paidEnv.PAY_TO, 'docs still carry the payment requirements');
+assert.equal(getDocs.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.match(res.headers.get('link') || '', /rel="payment"/);
 
 /* 4d — MCP (Streamable HTTP). Discovery channel for agents that speak MCP rather than x402.
    The free tools must be genuinely useful and the paid one must NOT leak a verdict. */
@@ -524,6 +545,7 @@ const quoted = JSON.parse(m.result.content[0].text);
 assert.strictEqual(quoted.payment_required, true, 'paid tool must not answer for free');
 assert.strictEqual(quoted.decision, undefined, 'MCP must not leak the verdict');
 assert.strictEqual(quoted.accepts[0].payTo, paidEnv.PAY_TO, 'quotes the real payee');
+assert.equal(quoted.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
 
 m = await mcp(paidEnv, 'tools/call', { name: 'first_42_sponsor' });
 const sponsorQuote = JSON.parse(m.result.content[0].text);
@@ -532,6 +554,8 @@ assert.equal(sponsorQuote.amount_atomic, '42000000');
 assert.match(sponsorQuote.endpoint, /\/v1\/sponsor$/);
 assert.equal(sponsorQuote.accepts[0].maxAmountRequired, '42000000');
 assert.notEqual(sponsorQuote.accepts[0].maxAmountRequired, '5000');
+assert.equal(sponsorQuote.fallback.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.equal(sponsorQuote.fallback.amountUsd, 42);
 
 /* free mode is the one place it may answer */
 m = await mcp(freeEnv, 'tools/call', { name: 'policy_check', arguments: { request: { action: 'gmail.read' } } });
