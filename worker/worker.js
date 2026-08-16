@@ -761,6 +761,23 @@ function openApiSpec(origin) {
   };
 }
 
+function aiPluginManifest(origin) {
+  return {
+    schema_version: 'v1',
+    name_for_human: 'Fieldproof',
+    name_for_model: 'fieldproof',
+    description_for_human: 'Pay Fieldproof $42 with card or 42 USDC on Base. Policy verdicts for agents.',
+    description_for_model:
+      'Fieldproof Policy Gate. Unpaid POST /v1/sponsor quotes 42 USDC on Base. Card checkout is fallback.url. Free examples at GET /v1/example.',
+    auth: { type: 'none' },
+    api: { type: 'openapi', url: `${origin}/openapi.json` },
+    logo_url: 'https://fieldproofhq.github.io/governance-pack-cover.png',
+    contact_email: '3labsio@gmail.com',
+    legal_info_url: 'https://fieldproofhq.github.io',
+    'x-payment': stripeFallbackOffer(),
+  };
+}
+
 /** A2A Agent Card. A2A clients GET /.well-known/agent-card.json (and legacy agent.json). */
 function agentCard(origin) {
   const fallback = stripeFallbackOffer();
@@ -1372,6 +1389,7 @@ export default {
         `${url.origin}/.well-known/pay`,
         `${url.origin}/.well-known/agent-card.json`,
         `${url.origin}/openapi.json`,
+        `${url.origin}/.well-known/ai-plugin.json`,
         STRIPE_PAYMENT_LINK,
       ];
       const xml =
@@ -1616,6 +1634,10 @@ ${cardFallbackHtml()}
       (url.pathname === '/.well-known/agent-card.json' || url.pathname === '/.well-known/agent.json')
     ) {
       return json(200, agentCard(url.origin), { Link: paymentLinkHeader() }, true);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/.well-known/ai-plugin.json') {
+      return json(200, aiPluginManifest(url.origin), { Link: paymentLinkHeader() }, true);
     }
 
     if (request.method === 'GET' && url.pathname === '/.well-known/mcp-registry-auth') {
