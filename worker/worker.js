@@ -1509,7 +1509,7 @@ function checkouts(c, origin, btc = null) {
       asset: 'USD',
       amount_usd: 42,
       meets_first_42: true,
-      note: 'live Stripe Payment Link; card, Cash App, Link, or US bank debit; one $42 payment meets the bar',
+      note: 'live Stripe Payment Link; card, Cash App, Link, US bank, Klarna, Afterpay, Affirm; issues a Stripe invoice; optional company name and tax ID',
     },
     {
       id: 'card-uri',

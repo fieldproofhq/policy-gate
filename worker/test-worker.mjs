@@ -66,6 +66,8 @@ const stripeLink = info.checkouts.find((o) => o.id === 'stripe-payment-link');
 assert.equal(stripeLink.amount_usd, 42);
 assert.equal(stripeLink.meets_first_42, true);
 assert.equal(stripeLink.url, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
+assert.match(stripeLink.note, /invoice/i);
+assert.match(stripeLink.note, /tax ID/i);
 assert.equal(info.card, 'https://buy.stripe.com/eVq4gA91U3Rr1Yt6z31sQ00');
 assert.equal(info.fallback.url, info.card);
 assert.match(res.headers.get('link') || '', /rel="payment"/);
