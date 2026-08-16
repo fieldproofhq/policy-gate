@@ -2161,9 +2161,15 @@ export default {
       const payTo = c.payTo || '0x07C2383008a9ed30581f27Db5531E19411c94fb3';
       const price = c.priceUsd || '0.005';
       const checks = Number(price) > 0 ? Math.ceil(42 / Number(price)) : 8400;
-      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 via x402 — Fieldproof</title></head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5">
+      const payUri = usdcEip681(payTo);
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pay $42 via x402 — Fieldproof</title>
+<link rel="payment" href="${STRIPE_PAYMENT_LINK}">
+</head><body style="font-family:system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f4efe6;color:#111">
 <h1>Pay $42 via x402</h1>
-<p>One unpaid <code>GET</code> or <code>POST /v1/sponsor</code> quotes <strong>42 USDC on Base</strong>. <a href="${url.origin}/v1/sponsor">Open the 42 USDC checkout</a>.</p>
+<p>One transfer of <strong>42 USDC</strong> on <strong>Base</strong>. Agents can settle the same amount via <code>POST /v1/sponsor</code>.</p>
+${walletPayControls(payTo, payUri)}
+<p><a href="${url.origin}/v1/sponsor" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:.7rem 1.1rem;border-radius:999px;font-weight:600">Open the 42 USDC checkout</a></p>
+<p><a href="${payUri}">Open in wallet (EIP-681)</a></p>
 <pre style="white-space:pre-wrap;overflow:auto">curl -s -D - -o /dev/null -X POST ${url.origin}/v1/sponsor</pre>
 <p>Pay to <code>${payTo}</code> on <code>${c.network || 'eip155:8453'}</code>. Discovery: <a href="/.well-known/x402">/.well-known/x402</a>.</p>
 <p>Per-check path (does not meet $42 alone): agents pay <strong>$${price}</strong> per <code>POST /v1/check</code> (${checks} checks = $42). Evaluate free first: <a href="/v1/example">GET /v1/example</a>.</p>
@@ -2173,7 +2179,7 @@ export default {
 <p>After settlement, check <a href="/v1/received">GET /v1/received</a>.</p>
 ${cardFallbackHtml()}
 </body></html>`;
-      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() } });
+      return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', Link: paymentLinkHeader(), ...corsHeaders() } });
     }
 
     if (request.method === 'GET' && (url.pathname === '/v1/pay/card.uri' || url.pathname === '/v1/pay/card.txt')) {
